@@ -1,0 +1,103 @@
+---
+title: "Room2"
+author: "Hannah Zmuda"
+date: "September 16, 2020"
+output: 
+  html_document:
+    toc: TRUE
+    toc_float: TRUE
+---
+
+## Room2: R Testing Suite
+
+I am going to attempt to do some more intense R programming. My goal is to include the following:
+
+* Use apply, mapply, lapply, and sapply. Also explain the difference.
+* Work with R data frames (cars, iris, states). Add a link to show where it is.
+* Make a function.
+* Include a plot, and a more advance plot (like ggplot)
+
+# 1. Applying Functions
+
+## Using the Apply Functions
+
+The apply functions are very helpful in programming. While loops can be time consuming, memory consuming, and CPU consuming, apply is faster and produces cleaner code. More information can be found [here](https://www.datacamp.com/community/tutorials/r-tutorial-apply-family).
+
+Let's use apply first! The format of apply is apply(X, MARGIN, FUN,...). MARGIN is a variable that defines how the function should be applied to the matrix. MARGIN = 1 is applied over the rows, MARGIN = 2 is applied over the columns. Interestingly, when you use MARGIN = c(1,2) is applied to both the rows and column. FUN is the function to be applied, such as sum or average.
+
+```{r apply}
+
+mat <- matrix(runif(20), nrow = 4, ncol = 5)
+sumMatrixRow <- apply(mat, MARGIN = 1, FUN = sum)
+sumMatrixRow
+sumMatrixCol <- apply(mat, 2, sum)
+sumMatrixCol
+
+```
+## Using the lapply Function
+
+Unlike apply, lapply is used to apply a function across a data frames, lists, and vectors. Not only that, but the output of lapply is also a list.
+
+```{r lapply}
+A <- matrix(1:9, nrow = 3, ncol = 3)
+B <- matrix(4:15, nrow = 4, ncol = 3)
+C <- matrix(2:7, nrow = 3, ncol = 2)
+myList <- list(A, B, C)
+lapply(myList, "[", 1)#Take the first column of each matrix and output the value into an array
+lapply(myList, "[", c(1,2)) #Take the first two values in the first row and two rows
+
+```
+##Using sapply Function
+
+Similar to lapply, but the output is simplified. One can also use `sapply` and `simplify = FALSE`.
+
+```{r sapply}
+sapply(myList, "[", 2, 1, simplify = FALSE)
+```
+## Using mapply Function
+
+`mapply` is used to apply a function for multivariate data. This can include multiple lists and multiple vector arguments.  
+
+```{r mapply}
+# Create a 4x4 matrix
+Q1 <- matrix(c(rep(1, 4), rep(2, 4), rep(3, 4), rep(4, 4)),4,4)
+
+# Print `Q1`
+print(Q1)
+
+# Or use `mapply()`
+Q2 <- mapply(rep,1:4,4) #rep replicates the values in x -> rep(x,...)
+
+# Print `Q2`
+print(Q2)
+```
+
+# 2. Playground for Stats & Plots
+
+To see the full list of data sets available on R use `library(help = "datasets")`
+
+# 3. Given Example:
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
