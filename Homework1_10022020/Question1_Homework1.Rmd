@@ -1,0 +1,27 @@
+---
+title: "Homework1_Question1"
+author: "Hannah Zmuda"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# Library Installation
+```{r}
+library('evd')
+```
+# Question 1
+
+## Objective 
+
+The goal of this problem is to find the inverse CDF of the given density:
+
+$$ f_X(x) = exp(x - e^x)$$
+
+This will be done by creating an algorithm to simulate the standard extreme value distribution.
+<!-- CDF is for continuous random variables -->
+For this we will use the EVD Function is R to make our distribution, which is a standard extreme value distribution, and evaluate the distribution using the inverse CDF approach.
+```{r}
+X = revd(1000, 0, 1)
+```

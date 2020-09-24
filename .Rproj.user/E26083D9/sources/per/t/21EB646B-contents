@@ -1,0 +1,16 @@
+---
+title: "Homework1_09232020_Question1"
+author: "Hannah Zmuda"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Question 1
+
+The objective is to use the inverse CDF transform approach to simulate the standard extreme value distribution of the given standard extreme value distribution's density:
+
+$$f_X(x) = exp(x - e^x)$$
+
