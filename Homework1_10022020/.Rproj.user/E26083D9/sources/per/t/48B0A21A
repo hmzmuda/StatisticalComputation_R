@@ -3,7 +3,7 @@
     "path": "D:/Documents/Classes/ComputationalStats/StatisticalComputation_R/Homework1_10022020/Question1_Homework1.Rmd",
     "project_path": "Question1_Homework1.Rmd",
     "type": "r_markdown",
-    "hash": "454828500",
+    "hash": "1964463129",
     "contents": "",
     "dirty": false,
     "created": 1600908820576.0,
@@ -11,16 +11,17 @@
     "relative_order": 1,
     "properties": {
         "tempName": "Untitled1",
-        "cursorPosition": "5,0",
+        "cursorPosition": "18,73",
         "scrollLine": "0",
-        "last_setup_crc32": "66EED797bb338d19"
+        "last_setup_crc32": "046038D1bb338d19",
+        "docOutlineVisible": "1"
     },
     "folds": "",
-    "lastKnownWriteTime": 1600911374,
+    "lastKnownWriteTime": 1600915735,
     "encoding": "UTF-8",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1600911374444,
+    "last_content_update": 1600915735675,
     "read_only": false,
     "read_only_alternatives": []
 }

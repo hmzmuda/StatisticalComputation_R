@@ -1,0 +1,4 @@
+"0","u <- 0"
+"0","B <- 1"
+"0","n <- 1000 #sample number"
+"0","U1 <- runif(n, 0, 1) #Random Number Generator, numbers are evenly distributed between 0 and 1"

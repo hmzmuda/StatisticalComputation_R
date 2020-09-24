@@ -8,8 +8,9 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 # Library Installation
-```{r}
-library('evd')
+```{r library, include = FALSE}
+library(locfit)
+library(logspline)
 ```
 # Question 1
 
@@ -21,7 +22,29 @@ $$ f_X(x) = exp(x - e^x)$$
 
 This will be done by creating an algorithm to simulate the standard extreme value distribution.
 <!-- CDF is for continuous random variables -->
-For this we will use the EVD Function is R to make our distribution, which is a standard extreme value distribution, and evaluate the distribution using the inverse CDF approach.
-```{r}
-X = revd(1000, 0, 1)
+For this we will use a normal distribution based on the equation above and then use inverse CDF approach, simulate the standard extreme value distribution.
+
+To use the inverse CDF approach, we must first find the inverse of the density function, which is;
+
+```{r variables}
+u <- 0
+B <- 1
+n <- 1000 #sample number
+U1 <- runif(n, 0, 1) #Random Number Generator, numbers are evenly distributed between 0 and 1
 ```
+
+```{r functions}
+f <- function(x){x - exp(x)}#the standard extreme value distribution density function
+q <- function(U1){u - B * log(-log(U1))}#inverse of the standard extreme value distribution density function
+#histogram of simulated data
+hist(q(U1), prob = TRUE, main = "Standard Extreme Value Distibution", ylim = c(0,0.6), xlab = "Variable", ylab ="Density")
+x <- seq(0, 1, 0.01)
+lines(density(q(U1))) #density curve of f(x)
+box()
+```
+
+
+```{r}
+
+```
+
