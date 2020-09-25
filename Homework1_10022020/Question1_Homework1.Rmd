@@ -7,7 +7,7 @@ output: pdf_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-# Library Installation
+
 ```{r library, include = FALSE}
 library(locfit)
 library(logspline)
@@ -21,10 +21,7 @@ The goal of this problem is to find the inverse CDF of the given density:
 $$ f_X(x) = exp(x - e^x)$$
 
 This will be done by creating an algorithm to simulate the standard extreme value distribution.
-<!-- CDF is for continuous random variables -->
-For this we will use a normal distribution based on the equation above and then use inverse CDF approach, simulate the standard extreme value distribution.
-
-To use the inverse CDF approach, we must first find the inverse of the density function, which is;
+For this we will use a normal distribution based on the equation above and then use inverse CDF approach to simulate the standard extreme value distribution.
 
 ```{r variables}
 u <- 0
@@ -34,17 +31,49 @@ U1 <- runif(n, 0, 1) #Random Number Generator, numbers are evenly distributed be
 ```
 
 ```{r functions}
-f <- function(x){x - exp(x)}#the standard extreme value distribution density function
-q <- function(U1){u - B * log(-log(U1))}#inverse of the standard extreme value distribution density function
+f <- function(x){exp(x - exp(x))}#the standard extreme value distribution density function
+q <- function(U1){u - B * log(-log(U1))}#inverse of the standard extreme value distribution density function, run uniform data through (U1)
 #histogram of simulated data
-hist(q(U1), prob = TRUE, main = "Standard Extreme Value Distibution", ylim = c(0,0.6), xlab = "Variable", ylab ="Density")
+hist(q(U1), prob = TRUE, main = "Standard Extreme Value Distibution", ylim = c(0,1), xlab = "Variable", ylab ="Density")
 x <- seq(0, 1, 0.01)
-lines(density(q(U1))) #density curve of f(x)
+lines(density(f(x)), col = "blue") #density curve of f(x)
+lines(density(q(U1)), col = "red") #density curve of q(U1)
 box()
 ```
 
+```{r}
+f <- function(x){x - exp(x)}#the standard extreme value distribution density function
+inverse <- function(f, lower, upper){
+  function(y){
+    uniroot(function(x){f(x) - y}, lower = 0, upper = 100, tol=1e-3)
+  }
+}
+fInv <- inverse(function(x){exp(x - exp(x))}, 0.1, 100)
+hist(fInv(U1), prob = TRUE, main = "Test2", ylim = c(0,0.6), xlab = "Variable", ylab ="Density")
+```
+
+\newpage
+# Question 2
+
+The objective of question 2 is to develop an algorithm to simulate the Rayleigh distribution. This will be in the form of a function with two inputs: the sample size as n and the scale parameter as $\sigma$.
+The Rayleigh distribution has a density of;
+$$f(x) = \frac{x}{\sigma^2}exp(-\frac{x^2}{2\sigma^2})$$
+Inverse of the CDF (of the given density function) is:
+$$F^{-1}(x,\sigma) = \sigma\sqrt{-2ln(1 - x)}$$
 
 ```{r}
+#CDF for the Rayleigh distribution
+r <- function(n,s){
+  u <- runif(n)
+  x <- s*sqrt(-2*log(1-u))
+  return(x)
+}
+#par(mfrow=c(1,2))
+#Check normality
+qqnorm(r(1000,1))
+hist(r(1000,1), prob = TRUE)
+#qqline(f(1000,1),lwd=2,col=2)
+#
 
 ```
 
