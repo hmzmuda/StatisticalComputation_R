@@ -1,0 +1,6 @@
+"0","n <- 1000 #sample number"
+"0","U1 <- runif(n,0,1) #Random Number Generator, numbers are evenly distributed between 0 and 1"
+"0","f <- function(x){exp(x - exp(x))}#the standard extreme value distribution density function"
+"0","q <- function(U1){-log(-log(U1))}#inverse of the standard extreme value distribution density function, run uniform data through (U1)"
+"0","#histogram of simulated data"
+"0","hist(q(U1), prob = TRUE, main = ""Standard Extreme Value Distibution"", ylim = c(0, 1), xlab = ""Variable"", ylab =""Density"")"

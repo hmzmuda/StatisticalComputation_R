@@ -1,0 +1,2 @@
+"0","x <- seq(min(q(U1)), max(q(U1)), 0.01)"
+"0","lines(x,f(x), col = ""blue"") #density curve of f(x)"
