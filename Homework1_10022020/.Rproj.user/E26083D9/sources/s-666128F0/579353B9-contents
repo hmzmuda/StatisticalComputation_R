@@ -1,0 +1,272 @@
+---
+title: 'Math 475: Statistical Computation'
+author: "Jimin Ding"
+date: "Fall 2020"
+output:
+  slidy_presentation: default
+  beamer_presentation:
+    theme: Boadilla
+    keep_tex: yes
+    toc: yes
+    slide_level: 2
+    includes:
+      in_header: beamerheader.tex
+subtitle: Random Number Generation and Visualization
+institute: |
+  | Department of Mathematics and Statistics
+  | Washington University in St.Louis
+---
+
+```{r setup, include=FALSE, tidy=TRUE}
+knitr::opts_chunk$set(echo = TRUE,fig.height=3,fig.width=4.5)
+```
+
+# Random Variable Generation
+
+## Random Variable and Distribution 
+- Random variable is a measurable function that maps elements in a sample space to real numbers. \newline
+  Example: toss a coin, $X$(head)$=0$ and $X$(tail)$=1$.
+
+- Distribution is a function describing the probabilities of obtaining possible values that the random variable can be assumed. It is a mathematical description of randomness of the random variable. \newline
+Example: toss a fair con, $P(X=0)=P(X=1)=0.5$.
+
+- In statistical computation, random variables are often generated to mimic random experiments and facilitate statistic inference. 
+
+
+- All methods of generating random variables depend on the generation of discrete uniform random variables, which is referred to as random number generator (RNG) . 
+ 
+
+## Pseudo Random Number Generator
+
+- Instead of generating "real" discrete uniform random variables, computers generate pseudo random numbers based on some fixed algorithm. \newline
+Refer to the help topic `?set.seed` in R for details about the default RNG in R.
+
+- In general, RNG in R is suitable. 
+
+- Discrete uniform random variables from $\{1,2,\cdots, k\}$: \newline
+  `sample(1:k, size=n,replace=FALSE)`
+
+- Continuous random variables between 0 and 1: ``runif(n)`` 
+
+- Tip: **Always use `set.seed()`** to initialize the state for RNG so that the generation process is reproducible. 
+
+
+
+## R Functions for Standard Distributions
+
+- Functions: 
+  + d: density
+  + p: cumulative probability
+  + q: quantile
+  + r: random number generation
+  
+- Distributions: 
+  + unif
+  + norm
+  + bin
+  + exp
+  + pois
+  + multinom 
+  + t
+  + f
+  + chisq
+  + beta
+  + See `?Distributions` for more special distributions in base R.
+
+## RNG for Other Distributions
+
+- Inverse CDF approach
+- Acceptance and rejection approach 
+- Transformation approach
+- Convolutions and mixtures
+- Multivariate distributions
+
+Reading assignment: Textbook SCRR Chapter 3.
+
+## CDF Transformation of An Exponential
+
+```{r CDF1, fig.height=2.8}
+par(mfrow=c(1,2),cex=0.8)
+X=rexp(1000);
+hist(X, main=expression(Exponential: F(x)==1-e^-x))
+U=1-exp(-X);
+hist(U,main=expression(U==1-e^-X))
+```
+
+## Inverse CDF Transformation of A Uniform
+
+```{r CDF2, fig.height=2.8}
+par(mfrow=c(1,2),cex=0.8)
+U=runif(1000);
+hist(U)
+X=-log(1-U);
+hist(X,main=expression(X== -log(1-U)))
+```
+
+## Inverse Transform Approach
+
+- **Probability Integral Transformation Theorem.**  If $X$ is a continuous random variable with cumulative distribution function (CDF) $F(x)$, then $U=F(X)$ follows the uniform $(0,1)$.
+
+
+- **Inverse Transform.** Conversely, let $U \sim U(0,1)$ and $X=F^{-1}(U)$, where $F^{-1}$ be the inverse of a CDF $F$, then the random variable $X$ is distributed as $F$, that is, $P(X \leq x)=F(x), x \in \mathbb{R}$.  
+
+- Note that a CDF is a monotone increasing function bounded between 0 and 1. Hence $F$ is invertable when $F$ is continuous.
+
+- Actually, the inverse transform result holds even if $F$ is not a continuous CDF.  When $F$ is not continuous and has a flat part, one still define the inverse by taking the infimum of a flat part. 
+
+## Inverse Transform Sampling
+
+**Theorem.**
+Let $F(x), x \in \mathbb{R}$ be a CDF (continuous or not). Define the inverse function
+   $$ F^{-1}(y)= \inf \{x: F(x) \geq y \}, \quad y \in [0,1]. $$
+  Let $U$ be a uniform random variable on the interval $[0,1]$ and $X=F^{-1}(U)$. Then $X \sim F$,that is, $P(X \leq x)=F(x), x \in \mathbb{R}$.  
+
+**Proof.**
+We first show $U \leq F(x)$ is equivalent to $F^{-1}(U) \leq x$.   
+
+For any $u$ and $x$, if $F(x) \geq u$, then by the definition of inverse $F^{-1}(u) \leq x$. So $\{U \leq F(x)\} \subseteq \{F^{-1}(U) \leq x\}$. On the other hand, for any u s.t. $F^{-1}(u) \leq x$, $F(F^{-1}(u)) \leq F(x)$ since $F$ is a monotone increase function. Putting together with the fact that $u \leq F(F^{-1}(u))$, we have $u \leq F(x)$ and $\{F^{-1}(U) \leq x\} \subseteq \{U \leq F(x)\}$.   
+
+Therefore,
+$$P(X\leq x)=P(F^{-1}(U) \leq x)=P(U \leq F(x))=F(x).$$
+
+## Inverse Transform Sampling Algorithm
+
+1. Derive the inverse CDF $F^{-1}(u)$ and implement the function in R.
+
+2. Generate a random number $u$ from $U(0,1)$: `runif(1)`.
+
+3. Compute $x=F^{-1}(u)$.
+
+$~$
+
+Note: This approach works only if the $F^{-1}$ is relative easy to compute. 
+
+- Example: 
+
+   Exp: $X=-\log(1-U)/ \lambda$ or $X=-\log(U)/ \lambda$  
+
+   Geometric: SCRR Chap 3.2.2
+   
+   Extreme value: Homework 1.
+
+- Counter example: normal... 
+
+## Box-Muller Transformation
+
+Suppose $X_1, X_2 \iid N(0,1)$. Let $R$ and $\theta$ be the polar coordinates of $(X_1,X_2)$, then 
+$$R^2=X^2_1+X_2^2 \sim \chi^2_2 \equiv\ \Gamma(1,1/2) \equiv Exp(1/2)$$
+and 
+$$\theta=\arctan (X_2/X_1) \sim U(0,2\pi).$$
+Based on this, we can simulate standard normal random variables as follows.
+
+1. Generate $U_1, U_2 \iid U(0,1)$.
+
+2. Let $$X_1=\sqrt{-2 \log U_1 }\cos (2\pi U_2), \quad X_2=\sqrt{-2 \log U_1 } \sin (2\pi U_2).$$
+Then $X_1, X_2 \iid N(0,1)$.
+
+## Acceptance and Rejection Approach
+
+Acceptance and rejection is a more general approach to simulate random variables whose inverse cdf is implicit. Let $X$ be a random variable with pdf $f(x)$, which is referred to the *target* pdf. Suppose it is relatively easy to generate observations of random variable $Y$ with pdf $g$ s.t.
+$$f(x) \leq M g(x), \quad x \in \mathbb{R}, $$
+for some constant $M$. Here, $g$ is called *instrumental* pdf and mainly used to cover the tail of $f$. 
+
+**Algorithm.**
+
+1. Generate $Y \sim g$ and $U \sim U(0,1)$.
+2. If $U \leq \frac{f(Y)}{Mg(Y)}$, then accept $Y$ and set $X=Y$. \newline
+   Otherwise return to step 1 and regenerate $Y$.
+
+Then $X$ has pdf $f(x)$. 
+
+## Acceptance rate 
+Note that in step 2, 
+$$P(\text{accept}|Y=y)=P(U \leq \frac{f(y)}{Mg(y)}|Y=y) =\frac{f(y)}{Mg(y)}.$$ Therefore, the total probability of acceptance within each iteration is
+$$\int_{-\infty}^{\infty} P(\text{accept}|Y=y) g(y)dy= \int_{-\infty}^{\infty} \frac{f(y)}{Mg(y)} g(y) dy =\frac{1}{M}.$$
+This implies that the number of iterations until acceptance follows the geometric distribution with mean $M$. On average, each sample of $X$ requires $M$ iterations. To simulate $X$ efficiently, one should choose $M$ as small as possible. 
+
+Remark: If there is a constant in the target and instrumental pdf, say $f(x)=ah(x)$ and $g(x)=bc(x)$, the constant may be combined with $M$ in step 2 to simplify the calculation, $U \leq h(Y)/(M_2 c(x))$. 
+
+## Proof of Acceptance and Rejection Approach
+
+For any $x \in \mathbb{R}$,
+\begin{align*}
+P(X\leq x) &= P(Y \leq x | U \leq \frac{f(Y)}{Mg(Y)} ) \\
+&= \frac{P(Y \leq x , U \leq \frac{f(Y)}{Mg(Y)})}{P(U \leq \frac{f(Y)}{Mg(Y)} )}\\
+&=\frac{\int_{-\infty}^x P(U \leq \frac{f(y)}{Mg(y)}) g(y) dy }{\int_{-\infty}^{\infty} P(U \leq \frac{f(y)}{Mg(y)}) g(y) dy } \quad (\text{Bayes' Rule}) \\
+&=\frac{\int_{-\infty}^x \frac{f(y)}{Mg(y)} g(y) dy }{\int_{-\infty}^{\infty} \frac{f(y)}{Mg(y)} g(y) dy }\\
+&=\int_{-\infty}^x f(y) dy
+\end{align*}
+Hence, by differentiating both sides, we prove that the pdf of $X$ is $f$. 
+
+
+## Example of Acceptance and Rejection: Standard Normal
+  - Goal: Generate standard normal random variables with pdf $$f(x)=\exp\{-x^2/2\}/\sqrt{2\pi}.$$
+  - Consider the pdf of the standard Cauchy distribution $$g(x)=1/(\pi (1+x^2)).$$
+  -  Note that $f(x)\leq Mg(x), \forall x$, where $M=\sqrt{2\pi}\exp\{-1/2\}$.
+  -  The cdf of the standard Cauchy distribution is explicit $G(x)=\arctan(x)/\pi+1/2$. And the inverse of the cdf is $G^{-1}(x)=\tan(\pi (x-1/2)).$
+  -  Hence we can generate Cauchy random variables via $Y=G^{-1}(U_1)$, where $U_1 \sim U(0,1)$.  
+  -  Generate $U_2 \sim U(0,1)$. If $U_2 < f(Y)/(Mg(Y))$, we accept the Cauchy random variable, $X=Y$; otherwise, regenerate $Y$.
+  -  The acceptance rate, $1/M \approx 0.66$, measures efficiency of algorithm. 
+
+## Example R Code
+```{r AJnorm, fig.show='hide'}
+set.seed(475)
+n=10000; 
+U1=runif(n,min=0,max=1); 
+U2=runif(n,min=0,max=1)
+M=2*exp(-1/2)*sqrt(pi/2)
+Y=tan(pi*(U1-1/2))
+fY=exp(-Y^2/2)/sqrt(2*pi)
+gY=1/pi/(1+Y^2)
+X=Y[U2<=fY/gY/M]
+
+hist(X,freq=FALSE,ylim=c(0,0.5), main=paste("Acceptance Rate:",length(X)/n))
+tt=seq(from=-4,to=4,by=0.01); 
+lines(tt,exp(-tt^2/2)/sqrt(2*pi),col='red') ## add the true normal pdf
+lines(tt,1/pi/(1+tt^2)*M,col='green') 
+```
+
+##
+```{r echo=FALSE, fig.height=4}
+hist(X,freq=FALSE,ylim=c(0,0.5), main=paste("Acceptance Rate:",length(X)/n))
+tt=seq(from=-4,to=4,by=0.01); 
+lines(tt,exp(-tt^2/2)/sqrt(2*pi),col='red') ## add the true normal pdf
+lines(tt,1/pi/(1+tt^2)*M,col='green') 
+```
+
+# Visualization
+
+## Visualization
+
+- Visualization is an important element in Exploratory Data Analysis (EDA) to recognize 
+  + patterns
+  + trends
+  + association
+  + outliers
+  + ...
+
+- Graphics are usually more efficient and attractive in delivering information.
+
+- Reading assignment: textbook SCRR Chapter 5.
+
+
+## Graphic Environments in R
+
+- Base R:
+  + 2D: plot, barplot, boxplot, hist, pie,
+  + 3D: image, heatmap, contour, persp, 
+  + Distribution: qqnorm, qqline, qqplot, 
+  + Association: pairs, corplot 
+  + Export graphs: pdf, jpeg, bmp, png
+- ggplot2: high-level graphic system, especially useful for complex plots 
+  + Main function: `ggplot`
+  + Shortcut: `qplot`
+  + Typical syntax: \newline
+  `ggplot(data,aes()) + geom() + ... + stat() + ...` 
+  + Export: `ggsave(p,file='myplot.pdf')`
+- Some related libraries: 
+  + grid: low-level graphic system which provides flexible control and arrangement of graphic output.
+  + lattice: high-level graphic system, implement the `Trellis` graphic system, similar syntax to base R graphics.
+
+
+

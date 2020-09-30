@@ -1,0 +1,8 @@
+"0","#Inverse CDF approach for the Rayleigh distribution"
+"0","r <- function(n,s){"
+"0","  U2 <- runif(n,0,1)"
+"0","  x <- s*sqrt(-2*log(1-U2))"
+"0","  return(x)"
+"0","}"
+"0","#Check normality"
+"0","qqnorm(r(1000,1))"

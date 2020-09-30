@@ -1,0 +1,2 @@
+"0","#Histogram of simulated data"
+"0","hist(r(1000,1), prob = TRUE,xlab = ""Values (Uniform Distribution)"",ylab = ""Frequencies"",main = ""Histogram of Simulated Rayleigh Distribution"")"
