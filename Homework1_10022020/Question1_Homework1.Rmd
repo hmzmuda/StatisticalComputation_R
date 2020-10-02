@@ -1,6 +1,7 @@
 ---
-title: "Homework1_Question1"
+title: "Math 475: Homework 1"
 author: "Hannah Zmuda"
+date: "October 1, 2020"
 output:
   pdf_document:
     df_print: paged
@@ -29,14 +30,19 @@ $$F_x(x) = -e^{-e^{x}}$$
 And then take the inverse of the equation:
 $$F_x^{-1}(x) = ln(-ln(-x))$$
 
-```{r CDF Inverse}
+```{r Q1}
 set.seed(200)
 n <- 1000 #sample number
-U1 <- runif(n,0,1) #Random Number Generator, numbers are evenly distributed between 0 and 1
-f <- function(x){exp(x-exp(x))}#the standard extreme value distribution density function
-q <- function(U1){log(-log(1-U1))}#inverse of the standard extreme value distribution density function, run uniform data through (U1)
+#Random Number Generator, numbers are evenly distributed between 0 and 1
+U1 <- runif(n,0,1) 
+#the standard extreme value distribution density function
+f <- function(x){exp(x-exp(x))}
+#inverse of the standard extreme value distribution density function, 
+#run uniform data through (U1)
+q <- function(U1){log(-log(1-U1))}
 #histogram of simulated data
-hist(q(U1), prob = TRUE, main = "Standard Extreme Value Distibution", ylim = c(0, 1), xlab = "Values", ylab ="Density")
+hist(q(U1), prob = TRUE, main = "Standard Extreme Value Distibution",
+     ylim = c(0, 1), xlab = "Values", ylab ="Density",breaks = 20)
 x <- seq(min(q(U1)), max(q(U1)), 0.01)
 lines(x,f(x), col = "blue") #density curve of f(x)
 
@@ -54,8 +60,8 @@ $$F_x(x) = -exp(-\frac{x^2}{2\sigma^2})$$
 Inverse of the CDF (of the given density function) is:
 $$F^{-1}(x,\sigma) = \sigma\sqrt{-2ln(1 - x)}$$
  
-```{r Rayleigh Distribution}
-set.seed(475)
+```{r Q2}
+set.seed(200)
 #Inverse CDF approach for the Rayleigh distribution
 r <- function(n,s){
   U2 <- runif(n,0,1)
@@ -66,7 +72,8 @@ r <- function(n,s){
 qqnorm(r(1000,1))
 qqline(r(1000,1),lwd=2,col=2)
 #Histogram of simulated data
-hist(r(1000,1), prob = TRUE,xlab = "Values (Uniform Distribution)",ylab = "Frequencies",main = "Histogram of Simulated Rayleigh Distribution")
+hist(r(1000,1), prob = TRUE,xlab = "Values",ylab = "Frequencies",
+     main = "Histogram of Simulated Rayleigh Distribution",breaks = 20)
 ```
 
 \newpage
@@ -75,39 +82,39 @@ hist(r(1000,1), prob = TRUE,xlab = "Values (Uniform Distribution)",ylab = "Frequ
 When using Bayesian Inference, we sometimes simulate the prior, $\theta$, and maximize it to ensure we are maximizing the mean of the distribution. This can be done by accepting $\theta$ as $u \le \frac{f(x|\theta)}{f(x|\hat{\theta})}$ where $u ~ U(0,1)$ and $\hat{\theta}$ is the MLE from maximizing $f(x|\theta)$. Because we are given the following:
 
 $$u \le \frac{f(x|\theta)}{f(x|\hat{\theta})}$$
-Based on this equation, we can simplify the equation through the following proof:
-$$u \le \frac{f(x|\theta)}{\int_{\theta}^{}\theta e^{-\theta x}\pi(\theta) d\theta}$$
-$$u \le \frac{\theta e^{-\theta x}}{\int_{\theta}^{}\theta e^{-\theta x}(\frac{\beta^\alpha \theta^{\alpha - 1}e^{-\beta \theta}}{\gamma(\alpha)})d\theta}$$
-$$u \le \frac{1}{(\frac{\beta^\alpha}{\gamma(\alpha)})} \frac{\theta e^{-\theta x}}{\int_{0}^{1}\theta e^{-\theta x} \theta^{\alpha - 1} e^{-\beta \theta}   d\theta}$$
-Because $\pi(\theta)$ does not depend on $x$, we can take that out of the integral.
-$$u \le \frac{1}{(\frac{\beta^\alpha \theta^{\alpha - 1}e^{-\beta \theta}}{\gamma(\alpha)})} \frac{\theta e^{-\theta x}}{\frac{(-x^\theta +1)(e^{-\theta x})}{x^2}}$$
-$$u \le \frac{1}{M} \frac{f(\theta)}{g(\theta)}$$
-With this in mind, we can set our equations as follows:
 
-$$f(\theta) = \theta e^{-\theta x}$$
-$$g(\theta) = \theta e^{-\theta x}$$
-$$M = \frac{\beta^\alpha x^{\alpha - 1} e^{-\beta x}}{\gamma(\alpha)}$$
-These can be applied to find the posterior density $P(\theta|x)$.
+In order to use the maximum acceptance-rejection method, we need to confirm we can use it using the above equation. Based on the derivation in Rizzo et al, we can use a randomly generate number, U, and write the following integral:
+$$P(\theta \le U | x) = \int_{0}^{U} \pi(\theta)\frac{f(x|\theta)}{f(x|\hat{\theta})}d\theta$$
+Solving the integral gets us the following:
+$$p(U | x) = \pi(U)\frac{f(x|U)}{f(x|\hat{\theta})}$$
+where $\pi(U)$ is a gamma distribution, the likelihood is $f(x|\theta) = \theta e^{-\theta x}$, and the maximum likelihood can be solved by the follwoing:
+$$\frac{d}{d\hat{\theta}}(\hat{\theta} e^{- \hat{\theta} x}) = 0$$
+$$-(x \hat{\theta} - 1)e^{-\hat{\theta} x} = 0$$
+$$-\hat{\theta} x + 1 = 0$$
+$$1 = \hat{\theta} x$$
+$$\hat{\theta} = \frac{1}{x}$$
+With this in mind, we can use the acceptance-rejection method to simulate $u \le \frac{f(x|\theta)}{f(x|\hat{\theta})}$ to find teh posterior density $P(\theta|x)$.
 
-```{r Conjugate Prior}
+```{r Q3,b}
 #Functions
 f <- function(t,x){return(t*exp(-t*x))}
 acceptReject <- function(alpha,beta,n,x){
   #MLE/theta hat equation
-  MLE <- 1/x
+  thetaHat <- 1/x
   #number of times theta hat is accepted
   acceptRate <- 0
   #number of times gone through loop
   i <- 1
-  #initalize the output vector
+  #initialize the output vector
   result <- vector(length = n)
   while(acceptRate <= n){
     #step2a: generate U2 to be a uniform distribution
     U2 <- runif(1)
     #step2b: create theta in terms of a gamma distribution
-    theta <- rgamma(1,shape = alpha + 1, rate = beta + x)
+    theta <- rgamma(1,shape = alpha, rate = beta) #don't need alpha + 1 and 
+    #beta + x becuase that is conjugate prior for posterior
     #step 3: accept U2 and set theta=U2, if U2 <= f(theta)/f(MLE)
-    if(U2 <= f(theta,x)/f(MLE,x)){
+    if(U2 <= f(theta,x)/f(thetaHat,x)){
       acceptRate = acceptRate + 1
       result[acceptRate] = theta
     }
@@ -118,25 +125,58 @@ acceptReject <- function(alpha,beta,n,x){
 
 #posterior
 set.seed(100)
-n <- 1000#number of samples
-alpha <- 4 #alpha
-beta <- 2 #beta
-x <- 0.5 #x-value
+n <- 2000#number of samples
+alpha <- 1 #alpha
+beta <- 1 #beta
+x <- 1 #x-value
 X <- acceptReject(alpha,beta,n,x)
 result <- X[[1]]
-#calculating acceptance rate
 
-acceptRate <- X[[2]]/n
-print(X)
-
-hist(result, probability = T, breaks = 20,xlim = c(0,5),ylim = c(0,1),main = paste("Acceptance Rate:", acceptRate))
+#graphs
+hist(result, probability = T, breaks = 20,xlim = c(0,5),ylim = c(0,1), 
+     main = "Posterior Density",xlab = "Value",ylab = "Density")
+f2 <- function(x2){return(4*x2*exp(-2*x2)/gamma(2))}
+curve(f2,0,max(result),add = T, col = "green")
 
 ```
+
+```{r Q3,c}
+#posterior
+set.seed(100)
+n <- 2000#number of samples
+alpha <- 4 #alpha
+beta <- 2 #beta
+x <- 2 #x-value
+X <- acceptReject(alpha,beta,n,x)
+result <- X[[1]]
+
+#graphs
+hist(result, probability = T, breaks = 20,xlim = c(0,5),ylim = c(0,1), 
+     main = paste("Posterior Density, alpha = 4, beta = 2" ),
+     xlab = "Value",ylab = "Density")
+f2 <- function(x2){return(4*x2*exp(-2*x2)/gamma(2))}
+curve(f2,0,max(result),add = T, col = "green")
+
+```
+
+Based on the histogram produced, the histogram moves over towards $x -> \infty$ as $\alpha$ and $\beta$ increase, and less is enveloped by the expected posterior curve. As alpha and beta increase, fewer points are under the envelope compared to alpha and beta equal to 1. As x increases, the posterior moves back under the curve, but then the peak increases.
 
 \newpage
 # Question 4
 
-```{r Gauss Quad}
+For the approximation $\int_{0}^{4} t e^{2t} dt$ via Gaussian quadrature with three evaluation points, we get the following set of equations. 
+$$2 = w_1 + w_2 + w_3$$
+$$0 = w_1 x_1 + w_2 x_2 + w_3 x_3$$
+$$\frac{2}{3} = w_1 x_1^2 + w_2 x_2^2 + w_3 x_3^2$$
+$$0 = w_1 x_1^3 + w_2 x_2^3 + w_3 x_3^3$$
+$$\frac{2}{5} = w_1 x_1^4 + w_2 x_2^4 + w_3 x_3^4$$
+$$0 = w_1 x_1^5 + w_2 x_2^5 + w_3 x_3^5$$
+Using symmetry, $w_2 = 0$ and $x_2 = 0$. This then simplifies the eset of equations and gives us the the following solutions:
+$$w_1 = w_3 = 1$$
+$$x_1 = \sqrt{\frac{3}{5}}$$
+$$x_3 = -\sqrt{\frac{3}{5}}$$
+We can confirm these values using the gaussLegendre function.
+```{r Q4}
 library(pracma)
 ##  Quadrature with Gauss-Legendre nodes and weights
 #evaluation points: sqrt(3/5),0,-sqrt(3/5)
@@ -147,10 +187,10 @@ cc <- gaussLegendre(3,-1,1)
 #sum the weights*f(x)
 Q <- sum(cc$w * f(cc$x*2 + 2))*2
 #print weights
-print(cc) #weights and x values
-
+print(cc$w) #weights
+print(cc$x) #x-values
 print(Q) #Approximate Value
-
+#Solve for exact function
 integrand <-function(x) x*exp(2*x)
 exact <- integrate(f,0,4)
 exactValue <- exact$value
@@ -158,3 +198,6 @@ print(exactValue)#"Exact Value"
 error <- abs((Q-exactValue)/exactValue)*100
 print(error)#error
 ```
+
+Based on the simulation, the approximation error is 4967.107 with an approximation error of 4.789%.
+
