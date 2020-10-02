@@ -98,7 +98,7 @@ acceptReject <- function(alpha,beta,n,x){
   #number of times theta hat is accepted
   acceptRate <- 0
   #number of times gone through loop
-  i <- 0
+  i <- 1
   #initalize the output vector
   result <- vector(length = n)
   while(acceptRate <= n){
@@ -119,12 +119,17 @@ acceptReject <- function(alpha,beta,n,x){
 #posterior
 set.seed(100)
 n <- 1000#number of samples
-alpha <- 1 #alpha
-beta <- 1 #beta
-x <- 1 #x-value
+alpha <- 4 #alpha
+beta <- 2 #beta
+x <- 0.5 #x-value
 X <- acceptReject(alpha,beta,n,x)
 result <- X[[1]]
-hist(result, probability = T, ylim=c(0,1), breaks = 40)
+#calculating acceptance rate
+
+acceptRate <- X[[2]]/n
+print(X)
+
+hist(result, probability = T, breaks = 20,xlim = c(0,5),ylim = c(0,1),main = paste("Acceptance Rate:", acceptRate))
 
 ```
 
