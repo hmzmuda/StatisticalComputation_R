@@ -1,2 +1,0 @@
-"0","#lines(X,f(xx,xx),col = 'red')#true normal pdf"
-"0","#lines(xx,g(xx)*m(x),col = 'green')#adjusted pdf"
