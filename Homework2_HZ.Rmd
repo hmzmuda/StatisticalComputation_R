@@ -1,0 +1,47 @@
+---
+title: "Homework2_HZ"
+author: "Hannah Zmuda"
+date: "October 30, 2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(NLRoot)
+library(animation)
+library(optimr)
+```
+
+# Question 1
+
+## Bisection Method
+```{r bisection method function}
+bm <- bisection.method(FUN = function(x) sqrt(x)-cos(x),rg = c(0,2),interact = FALSE,main = "Bisection Method")
+iteration <- bm$iter
+
+```
+
+```{r bisection method}
+
+```
+
+```{r Newton method}
+new <- newton.method(FUN = function(x) sqrt(x)-cos(x),init = 1,rg = c(0,2),interact = FALSE)
+```
+
+\newpage
+
+# Question 2
+```{r Netwon Oil Spill}
+
+```
+
+\newpage
+
+# Question 3
+
+\newpage
+
+# Question 4
+
+\newpage
