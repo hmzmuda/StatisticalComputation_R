@@ -279,7 +279,12 @@ N <- data.oil$spills
 \newpage
 # Question 3
 ##Part a
-based on the problem, we know we are given an observed data set $X = (X_1, X_2, ...,X_n)$ where $X_i \sim \alpha N(\mu_1 , \sigma_1^2) + (1-\alpha)N(\mu_2, \sigma_2^2)$
+based on the problem, we know we are given an observed data set $X = (X_1, X_2, ...,X_n)$ where $X_i \sim \alpha N(\mu_1 , \sigma_1^2) + (1-\alpha)N(\mu_2, \sigma_2^2)$. with this, and knowing we have a two-component mixture model, we can derive the EM algorithm to find $\hat{\theta}$ where $\theta = (\alpha, \mu_1,\mu_2,\sigma_1,\sigma_2)$. For the $Q$ function we have:
+$$Q(\theta | \hat{\theta}) = E[log(L(\theta | X))]$$
+$$Q(\theta | \hat{\theta}) = \Sigma_{i = 1}^{n} log(\alpha N(X_i, \mu_1, \sigma_1) + (1-\alpha)N(X_i,\mu_2,\sigma_2))$$
+From here, we can say that the Maximum Likelihood extimate for the parameters $\mu$ an d$\sigma$ is as follows:
+$$\hat{\mu_j} = \frac{\Sigma_{i}X_i P(\theta_j|X_i)}{\Sigma_{i}P(\theta_j | X_i)}$$
+$$\hat{\sigma_j} = \frac{\Sigma_{i}(X_i-\mu_j)^2 P(\theta_j|X_i)}{\Sigma_{i}P(\theta_j | X_i)}$$
 
 ##Part b
 ```{r Galaxies}
