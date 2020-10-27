@@ -265,9 +265,9 @@ I <- function(N, b1, b2, theta.old){
 new.oil <- function(N,b1,b2,dl,d2l,tol){
   n <- length(N)
   i <- 1
-  theta.old <- c(1,1)
+  theta.old <- c(1,1)#need it to be a 2x26 matrix, but not sure what inital value to assign to it.
   for(i in 1:n){
-    theta.new = theta.old - (solve(d2l(N,b1,b2,theta.old)) %*% dl(N,b1,b2,theta.old))
+    theta.new = theta.old - (solve(d2l(N[i],b1[i],b2[i],theta.old)) %*% dl(N[i],b1[i],b2[i],theta.old))
     if(abs(theta.new - theta.old) <= tol){
       output.new <- theta.new
       return(output.new)
@@ -281,8 +281,8 @@ fish.oil <- function(N,b1,b2,dl,I,tol){
   i <- 1
   theta.old <- c(1,1)
   for(i in 1:n){
-    theta.new = theta.old + (solve(I(N,b1,b2,theta.old)) %*% dl(N,b1,b2,theta.old))
-    if(abs(a-a0) <= tol){
+    theta.new = theta.old + (solve(I(N[i],b1[i],b2[i],theta.old)) %*% dl(N[i],b1[i],b2[i],theta.old))
+    if(abs(theta.new - theta.old) <= tol){
       output.fish <- theta.new
       return(output.fish)
     }
@@ -293,8 +293,8 @@ fish.oil <- function(N,b1,b2,dl,I,tol){
 N <- data.oil$spills
 b1 <- data.oil$importexport
 b2 <- data.oil$domestic
-output.new <- new.oil(N,b1,b2,dl,d2l,1e-5)
-ouput.fish <- fish.oil(N,b1,b2,dl,I,1e-5)
+output.new <- new.oil(N,b1,b2,dl,d2l,1e-2)
+ouput.fish <- fish.oil(N,b1,b2,dl,I,1e-2)
 
 ```
 
