@@ -267,7 +267,7 @@ new.oil <- function(N,b1,b2,dl,d2l,tol){
   i <- 1
   theta.old <- c(1,1)
   for(i in 1:n){
-    theta.new = theta.old - dl(N,b1,b2,theta.old)/d2l(N,b1,b2,theta.old)
+    theta.new = theta.old - (solve(d2l(N,b1,b2,theta.old)) %*% dl(N,b1,b2,theta.old))
     if(abs(theta.new - theta.old) <= tol){
       output.new <- theta.new
       return(output.new)
@@ -281,7 +281,7 @@ fish.oil <- function(N,b1,b2,dl,I,tol){
   i <- 1
   theta.old <- c(1,1)
   for(i in 1:n){
-    theta.new = theta.old + dl(N,b1,b2,theta.old)/I(N,b1,b2,theta.old)
+    theta.new = theta.old + (solve(I(N,b1,b2,theta.old)) %*% dl(N,b1,b2,theta.old))
     if(abs(a-a0) <= tol){
       output.fish <- theta.new
       return(output.fish)
