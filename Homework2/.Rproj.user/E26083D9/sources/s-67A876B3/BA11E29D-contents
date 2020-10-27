@@ -204,7 +204,26 @@ Similar to part (a), we will use the log likelihood to find the equation to find
 
 Or we could take the (negative) expectation of the second derivative of the log likelihood function.
 \begin{equation}
-  
+  I(\alpha_1,\alpha_2) = -E[l\prime\prime(N(\alpha_1,\alpha_2))] = 
+   \begin{bmatrix}
+    \sum_{i = 1}^{n} E[\frac{N_i b_{i1}^2}{(\alpha_1b_{i1} + \alpha_2b_{i2})^2}]
+    && \sum_{i = 1}^{n} E[\frac{N_i b_{i1}b_{i2}}{(\alpha_1b_{i1} + \alpha_2b_{i2})^2}]
+    \\
+    \sum_{i = 1}^{n} E[\frac{N_i b_{i1}b_{i2}}{(\alpha_1b_{i1} + \alpha_2b_{i2})^2}]
+    && \sum_{i = 1}^{n} E[\frac{N_i b_{i2}^2}{(\alpha_1b_{i1} + \alpha_2b_{i2})^2}]
+  \end{bmatrix}
+\end{equation}
+Equation 10 then simplifies down to the Fisher Scoring Approach:
+\begin{equation}
+  \begin{bmatrix}
+    \alpha_1(t + 1)\\ \alpha_2(t+1)
+  \end{bmatrix}
+  =
+  \begin{bmatrix}
+    \alpha_1(t) \\ \alpha_2(t)
+  \end{bmatrix}
+  -
+  I(\theta^t)^{-1} l\prime(\theta^t)
 \end{equation}
 
 ### Part c: Implementing Newton and Fisher Methods in R
