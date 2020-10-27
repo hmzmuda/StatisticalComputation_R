@@ -222,7 +222,7 @@ Equation 10 then simplifies down to the Fisher Scoring Approach:
   \begin{bmatrix}
     \alpha_1(t) \\ \alpha_2(t)
   \end{bmatrix}
-  -
+  +
   I(\theta^t)^{-1} l\prime(\theta^t)
 \end{equation}
 
@@ -231,39 +231,39 @@ Equation 10 then simplifies down to the Fisher Scoring Approach:
 #import data set from Givens et al.
 data.oil <- read.table("oilspills.dat",header = TRUE)
 #likelihood function
-l <- function(N, a, b){
-  result <- sum(N*log(a[1]*b[1]+a[2]*b[2])) - sum((a[1]*b[1]+a[2]*b[2])) - sum(log(factorial(N)))
+l <- function(N, theta.old){
+  result <- sum(N*log(theta.old)) - sum(theta.old) - sum(log(factorial(N)))
   return(result)
 }
 #derivative of the likelihood function
-dl <- function(N, a, b){
-  result1 <- sum((N*b[1])/(a[1]*b[1] + a[2]*b[2])-sum(b[1]))
-  result2 <- sum((N*b[2])/(a[1]*b[1] + a[2]*b[2])-sum(b[2]))
+dl <- function(N, b1, b2, theta.old){
+  result1 <- sum((N*b1)/(theta.old)-sum(b1))
+  result2 <- sum((N*b2)/(theta.old)-sum(b2))
   return(matrix(data = list(result1,result2), nrow = 2, ncol = 1, dimnames = NULL))
 }
 #double derivative of the likelihood function
-d2l <- function(N, a, b){
-  result11 <- sum(-(N*b[1]^2)/(a[1]*b[1] + a[2]*b[2])^2)#1st row, 1st col
-  result12 <- sum(-(N*b[1]*bi2)/(a[1]*b[1] + a[2]*b[2])^2)#1st row,2nd col
-  result22 <- sum(-(N*b[2]^2)/(a[1]*b[1] + a[2]*b[2])^2)#2nd row, 2nd col
-  result21 <- sum(-(N*b[2]*b[1])/(a[1]*b[1] + a[2]*b[2])^2)#2nd row, 1st col
+d2l <- function(N, b1, b2, theta.old){
+  result11 <- sum(-(N*b1^2)/(theta.old)^2)#1st row, 1st col
+  result12 <- sum(-(N*b1*bi2)/(theta.old)^2)#1st row,2nd col
+  result22 <- sum(-(N*b2^2)/(theta.old)^2)#2nd row, 2nd col
+  result21 <- sum(-(N*b2*b1)/(theta.old)^2)#2nd row, 1st col
   return(matrix(data = list(result11,result21,result12,result22), nrow = 2, ncol = 2, dimnames = NULL))
 }
 #Fisher Information
-I <- function(N, a, b){
-  result11 <- sum(mean((N*b[1]^2)/(a[1]*b[1] + a[2]*b[2])^2))#1st row, 1st col
-  result12 <- sum(mean((N*b[1]*bi2)/(a[1]*b[1] + a[2]*b[2])^2))#1st row,2nd col
-  result22 <- sum(mean((N*b[2]^2)/(a[1]*b[1] + a[2]*b[2])^2))#2nd row, 2nd col
-  result21 <- sum(mean((N*b[2]*b[1])/(a[1]*b[1] + a[2]*b[2])^2))#2nd row, 1st col
+I <- function(N, b1, b2, theta.old){
+  result11 <- sum(mean((N*b1^2)/(theta.old)^2))#1st row, 1st col
+  result12 <- sum(mean((N*b1*bi2)/(theta.old)^2))#1st row,2nd col
+  result22 <- sum(mean((N*b2^2)/(theta.old)^2))#2nd row, 2nd col
+  result21 <- sum(mean((N*b2*b1)/(theta.old)^2))#2nd row, 1st col
   return(matrix(data = list(result11,result21,result12,result22), nrow = 2, ncol = 2, dimnames = NULL))
 }
-new.oil <- function(N,a,b,l,dl,d2l,tol){
+new.oil <- function(N,b1,b2,l,dl,d2l,tol){
   n <- length(N)
   i <- 1
-  a0 <- matrix(c(1,1),nrow = 2,ncol = 1)
+  theta.old <- 
   for(i in 1:n){
-    a = a0 - dl(N,a,b)/d2l(N,a,b)
-    if(abs(a-a0) <= tol){
+    theta.new = theta.old - dl(N,b1,b2,theta.old)/d2l(N,b1,b2,theta.old)
+    if(abs(theta.new - theta.old) <= tol){
       output.new <- a
       return(output.new)
     }
@@ -271,12 +271,12 @@ new.oil <- function(N,a,b,l,dl,d2l,tol){
   }
 }
 
-fish.oil <- function(N,a,b,l,dl,I,tol){
+fish.oil <- function(N,b1,b2,l,dl,I,tol){
   n <- length(N)
   i <- 1
-  a0 <- matrix(c(1,1),nrow = 2,ncol = 1)
+  theta.old <- 
   for(i in 1:n){
-    a = a0 - dl(N,a,b)/I(N,a,b)
+    theta.new = theta.old + dl(N,b1,b2,theta.old)/I(N,b1,b2,theta.old)
     if(abs(a-a0) <= tol){
       output.fish <- a
       return(output.fish)
@@ -285,6 +285,9 @@ fish.oil <- function(N,a,b,l,dl,I,tol){
   }
 }
 N <- data.oil$spills
+b1 <- data.oil$importexport
+b2 <- data.oil$domestic
+
 
 ```
 
