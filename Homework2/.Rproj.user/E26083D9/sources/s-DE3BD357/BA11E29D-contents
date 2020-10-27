@@ -1,0 +1,284 @@
+---
+title: "Homework 2"
+author: "Hannah Zmuda"
+date: "10/27/2020"
+output: pdf_document
+---
+---
+title: "Homework2_HZ"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(NLRoot)
+library(animation)
+library(optimr)
+library(MASS)
+```
+
+# Question 1
+
+## Bisection Method
+
+```{r bisection method}
+bisection <- function(f, a, b, nMax, tol)
+{
+  #initiate the a and b value, assume intervals will be proper
+  iteration <- 0
+  #check bounds
+  if(f(a) == 0.0){
+    return(a)
+  }
+  if(f(b) == 0.0){
+    return(b)
+  }
+  # Begin method's loop
+  for (i in 1:nMax){
+    c <- (a + b)/2 #Calc the midpoint
+    if(f(c) != 0) {
+      #TRUE: f(c) > tol AND i <=NMAX
+      if((abs(f(c)) > tol)) {
+        if(sign(f(c)) == sign(f(a))) {
+          a <- c
+          b <- b
+        }
+        else {
+          a <- a
+          b <- c
+        }
+        c <- (a + b)/2
+        iteration = iteration + 1
+      }
+      else {
+        #the f(c) is within the range of tolerance
+        break
+      }
+    }
+    else {
+      #FALSE: f(c) is a root
+      break
+    }
+  }
+  return(list("it" = iteration, "root" = c))
+}
+
+fcn <- function(x){sqrt(x)-cos(x)}
+bmMe <- bisection(fcn, 0, 2, 3, 1e-7)
+bmMe$root
+```
+## Newton-Raphson Method
+```{r newton method}
+newton <- function(f, dx, a, b, inital, nMax, tol){
+  #set initial value
+  x0 <- inital
+  rootArray <- nMax
+  
+  #Check bounds
+  if(f(a) == 0.0){
+    return(a)
+  }
+  if(f(b) == 0.0){
+    return(b)
+  }
+  
+  #begin loop for loop method
+  for (i in 1:nMax) {
+    x1 = x0 - (f(x0)/dx(x0))
+    rootArray[i] <- x1
+    if (abs(x1 - x0) <= tol){
+      root <- tail(rootArray,n = 1)
+      result <- list('root' = root, 'iterations' = rootArray)
+      return(result)
+    }
+    x0 <- x1
+  }
+}
+
+f <- function(x){sqrt(x)-cos(x)}
+dx <- function(x){0.5*(x^(-0.5)) + sin(x)}
+newMe <- newton(f, dx, 0, 2, 1, 3, 1e-3)
+newMe$root
+```
+
+The Newton-Raphuson Method finds the root within the three iterations, compared to the Bisection Method. The Bisection Method found 0.625, which is not even within the tolerance. 
+
+```{r bisection method check, include=FALSE}
+bm <- bisection.method(FUN = function(x) sqrt(x)-cos(x),rg = c(0,2),interact = FALSE,main = "Bisection Method")
+iteration <- bm$iter
+
+```
+
+```{r Newton method check, include=FALSE}
+new <- newton.method(FUN = function(x) sqrt(x)-cos(x),init = 1,rg = c(0,2),interact = FALSE)
+```
+
+\newpage
+
+# Question 2
+
+### Part a: Deriving the Newton-Raphson Method
+In the problem, we are told we can use the Poisson process assumption so we can have the likelihood function:
+\begin{equation}
+  L(N | \lambda_i) = \sum_{i = 1}^{n} \frac{\lambda^{N_i}e^{-\lambda}}{N!}
+\end{equation}
+
+and because $\lambda_i = \alpha_1b_{i1} + \alpha_2b_{i2}$ we can substitute $\lambda_i$ into Eq (1):
+\begin{equation}
+  L(N | \alpha_1, \alpha_2) = \sum_{i = 1}^{n} \frac{(\alpha_1b_{i1} + \alpha_2b_{i2})^{N_i}e^{-(\alpha_1b_{i1} + \alpha_2b_{i2})}}{N!}
+\end{equation}
+In order to find the parameters $\alpha_1$ and $\alpha_2$ we can use the Newton-Raphson update which needs to become Eq (3):
+\begin{equation}
+  \begin{bmatrix}
+    \alpha_1(t + 1)\\\alpha_2(t + 1)
+  \end{bmatrix}
+  =
+    \begin{bmatrix}
+    \alpha_1(t)\\\alpha_2(t)
+  \end{bmatrix} - \frac{L\prime}{L\prime\prime}
+\end{equation}
+In order to get Eq (3), we first need to get the log likelihood of Eq (2):
+\begin{equation}
+  l(N|\alpha_1,\alpha_2) = \sum_{i = 1}^{n} N_i \ln(\alpha_1b_{i1} + \alpha_2b_{i2}) - \sum_{i = 1}^{n} \alpha_1b_{i1} + \alpha_2b_{i2} -  \sum_{i = 1}^{n} \ln(N!)
+\end{equation}
+We can then use Eq (4) and take the partial first derivative in regard to both parameters $\alpha_1$ and $\alpha_2$:
+\begin{equation}
+  l\prime(N | \alpha_1, \alpha_2) = 
+    \begin{bmatrix}
+    \sum_{i = 1}^{n}\frac{N_i b_{i1}}{\alpha_1b_{i1} + \alpha_2b_{i2}} - \sum_{i = 1}^{n}b_{i1}
+    \\
+    \sum_{i = 1}^{n}\frac{N_i b_{i2}}{\alpha_1b_{i1} + \alpha_2b_{i2}} - \sum_{i = 1}^{n}b_{i2}
+  \end{bmatrix}
+\end{equation}
+To get the double derivative we use the Hessian matrix
+\begin{equation}
+  l\prime\prime(N | \alpha_1, \alpha_2) = 
+    \begin{bmatrix}
+    \frac{\partial^2 l}{\partial \alpha_1^2}
+    && \frac{\partial^2 l}{\partial\alpha_1 \partial\alpha_2}
+    \\
+    \frac{\partial^2 l}{\partial \alpha_2^2}
+    && \frac{\partial^2 l}{\partial\alpha_2 \partial\alpha_1}
+  \end{bmatrix}
+\end{equation}
+
+\begin{equation}
+  l\prime\prime(N | \alpha_1, \alpha_2) = 
+    \begin{bmatrix}
+    \sum_{i = 1}^{n} -\frac{N_i b_{i1}^2}{(\alpha_1b_{i1} + \alpha_2b_{i2})^2}
+    && \sum_{i = 1}^{n} -\frac{N_i b_{i1}b_{i2}}{(\alpha_1b_{i1} + \alpha_2b_{i2})^2}
+    \\
+    \sum_{i = 1}^{n} -\frac{N_i b_{i1}b_{i2}}{(\alpha_1b_{i1} + \alpha_2b_{i2})^2}
+    && \sum_{i = 1}^{n} -\frac{N_i b_{i2}^2}{(\alpha_1b_{i1} + \alpha_2b_{i2})^2}
+  \end{bmatrix}
+\end{equation}
+with this we can get the equation to be used in the Newton-Raphson update to get a final equation 
+\begin{equation}
+  \begin{bmatrix}
+    \alpha_1(t + 1)\\\alpha_2(t + 1)
+  \end{bmatrix}
+  =
+  \begin{bmatrix}
+    \alpha_1(t)\\\alpha_2(t)
+  \end{bmatrix}
+  -
+  \begin{bmatrix}
+    \sum_{i = 1}^{n} -\frac{N_i b_{i1}^2}{(\alpha_1b_{i1} + \alpha_2b_{i2})^2}
+    && \sum_{i = 1}^{n} -\frac{N_i b_{i1}b_{i2}}{(\alpha_1b_{i1} + \alpha_2b_{i2})^2}
+    \\
+    \sum_{i = 1}^{n} -\frac{N_i b_{i1}b_{i2}}{(\alpha_1b_{i1} + \alpha_2b_{i2})^2}
+    && \sum_{i = 1}^{n} -\frac{N_i b_{i2}^2}{(\alpha_1b_{i1} + \alpha_2b_{i2})^2}
+  \end{bmatrix}^{-1}
+  \begin{bmatrix}
+    \sum_{i = 1}^{n}\frac{N_i b_{i1}}{\alpha_1b_{i1} + \alpha_2b_{i2}} - \sum_{i = 1}^{n}b_{i1}
+    \\
+    \sum_{i = 1}^{n}\frac{N_i b_{i2}}{\alpha_1b_{i1} + \alpha_2b_{i2}} - \sum_{i = 1}^{n}b_{i2}
+  \end{bmatrix}
+\end{equation}
+
+### Part b: Deriving the Fisher Scoring Method
+Similar to part (a), we will use the log likelihood to find the equation to find the parameters $\alpha_1$ and $\alpha_2$. Instead of only taking the second derivative, we will take the variance of the first derivative to get the Fisher Information. This output will be a two by two matrix as well but instead is the Covariance matrix instead of the Hessian matrix:
+\begin{equation}
+  \begin{bmatrix}
+    Var(\sum_{i = 1}^{n}\frac{N_i b_{i1}}{\alpha_1b_{i1} + \alpha_2b_{i2}} - \sum_{i = 1}^{n}b_{i1}) && Covariance
+    \\
+    Covariance && Var(\sum_{i = 1}^{n}\frac{N_i b_{i2}}{\alpha_1b_{i1} + \alpha_2b_{i2}} - \sum_{i = 1}^{n}b_{i2})
+  \end{bmatrix}
+\end{equation}
+
+Or we could take the (negative) expectation of the second derivative of the log likelihood function.
+\begin{equation}
+  
+\end{equation}
+
+### Part c: Implementing Newton and Fisher Methods in R
+```{r Netwon Oil Spill}
+
+```
+
+### Part d: Standard Error
+
+### Part e: Quasi-newton Method
+
+\newpage
+
+# Question 3
+##Part a
+##Part b
+```{r Galaxies}
+#call the galaxies dataset
+data(galaxies)
+x <- galaxies
+n <- length(x)
+#make an estimation for the mu, sigma, and alpha variables. Can use k clustering based on the remark
+kCluster <- kmeans(x,2)$cluster
+mu1 <- mean(x[kCluster == 1])
+mu2 <- mean(x[kCluster == 2])
+sigma1 <- sd(x[kCluster == 1])
+sigma2 <- sd(x[kCluster == 2])
+alpha <- sum(kCluster == 1)/length(kCluster) #Make alpha based on the first mixture
+#Other variables
+i <- 2 #number of mixture models (two-mixture model)
+tol <- 1e-10 #tolerance for the EM Algorithm
+#Calculate Q
+#initalize Q
+Q <- 0
+Q[2] <- sum(log(alpha*dnorm(x,mu1,sqrt(sigma1)))) + sum(log((1-alpha)*dnorm(x,mu2,sqrt(sigma2))))
+#E step: Compute Q(theta | theta^t) where theta = (alpha,mu1,mu2,sig1,sig2)
+while(abs(Q[i]-Q[i-1])>=tol){
+  #Find the conditional probability for each mixture model
+  mix1 <- alpha*dnorm(x,mu1,sigma1)
+  mix2 <- (1-alpha)*dnorm(x,mu2,sigma2)
+  totalMix <- mix1 + mix2
+  cp1 <- mix1/totalMix#Conditional Probability for mixture 1
+  cp2 <- mix2/totalMix#Conditional probability for mixture 2
+  #M step
+  alpha <- sum(cp1)/n
+  mu1 <- sum(x*cp1)/sum(cp1)
+  mu2 <- sum(x*cp2)/sum(cp2)
+  sigma1 <- sqrt(sum(((x-mu1)^2)*cp1)/sum(cp1))
+  sigma2 <- sqrt(sum(((x-mu2)^2)*cp2)/sum(cp2))
+  #update probability values
+  cp1 <- alpha
+  cp2 <- 1-alpha
+  #update counter
+  i <- i + 1
+  #Return E-step, unless stopping criteria has been met
+  Q[i] <- sum(log(totalMix))
+}
+theta <- list("alpha" = alpha, "mu1" = mu1, "mu2" = mu2, "sigma1" = sigma1,"sigma" = sigma2)
+print(theta)
+
+hist(x, prob = T, breaks = 20, xlab = "Velocities (km/sec)", main = "Mixture Model Based on Galaxies Dataset")
+lines(density(x), col = "red")
+xfit <- seq(8000,35000,200)
+EMEstimate <- (alpha * dnorm(xfit,mu1,sigma1)) + ((1-alpha) * dnorm(xfit,mu2,sigma2))
+lines(xfit, EMEstimate, col = "green",ylim = max(EMEstimate))
+legend('topright', col = c("red","green"), lwd = 2, legend = c("Density of Galaxies", "Estimated EM"))
+
+```
+\newpage
+
+# Question 4
+
+\newpage

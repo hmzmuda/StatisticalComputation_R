@@ -1,0 +1,3 @@
+"0","xfit <- seq(8000,35000,200)"
+"0","EMEstimate <- (alpha * dnorm(xfit,mu1,sigma1)) + ((1-alpha) * dnorm(xfit,mu2,sigma2))"
+"0","lines(xfit, EMEstimate, col = ""green"",ylim = max(EMEstimate))"
