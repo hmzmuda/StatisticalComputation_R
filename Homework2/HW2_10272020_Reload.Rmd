@@ -230,6 +230,7 @@ Equation 10 then simplifies down to the Fisher Scoring Approach:
 ```{r Netwon Oil Spill}
 #import data set from Givens et al.
 data.oil <- read.table("oilspills.dat",header = TRUE)
+
 #likelihood function
 l <- function(N, theta.old){
   result <- sum(N*log(theta.old)) - sum(theta.old) - sum(log(factorial(N)))
@@ -239,55 +240,61 @@ l <- function(N, theta.old){
 dl <- function(N, b1, b2, theta.old){
   result1 <- sum((N*b1)/(theta.old)-sum(b1))
   result2 <- sum((N*b2)/(theta.old)-sum(b2))
-  return(matrix(data = list(result1,result2), nrow = 2, ncol = 1, dimnames = NULL))
+  output <- as.numeric(list(result1,result2))
+  return(matrix(data = output, nrow = 2, ncol = 1, dimnames = NULL))
 }
 #double derivative of the likelihood function
 d2l <- function(N, b1, b2, theta.old){
   result11 <- sum(-(N*b1^2)/(theta.old)^2)#1st row, 1st col
-  result12 <- sum(-(N*b1*bi2)/(theta.old)^2)#1st row,2nd col
+  result12 <- sum(-(N*b1*b2)/(theta.old)^2)#1st row,2nd col
   result22 <- sum(-(N*b2^2)/(theta.old)^2)#2nd row, 2nd col
   result21 <- sum(-(N*b2*b1)/(theta.old)^2)#2nd row, 1st col
-  return(matrix(data = list(result11,result21,result12,result22), nrow = 2, ncol = 2, dimnames = NULL))
+  output <- as.numeric(list(result11,result21,result12,result22))
+  return(matrix(data = output, nrow = 2, ncol = 2, dimnames = NULL))
 }
 #Fisher Information
 I <- function(N, b1, b2, theta.old){
   result11 <- sum(mean((N*b1^2)/(theta.old)^2))#1st row, 1st col
-  result12 <- sum(mean((N*b1*bi2)/(theta.old)^2))#1st row,2nd col
+  result12 <- sum(mean((N*b1*b2)/(theta.old)^2))#1st row,2nd col
   result22 <- sum(mean((N*b2^2)/(theta.old)^2))#2nd row, 2nd col
   result21 <- sum(mean((N*b2*b1)/(theta.old)^2))#2nd row, 1st col
-  return(matrix(data = list(result11,result21,result12,result22), nrow = 2, ncol = 2, dimnames = NULL))
+  output <- as.numeric(list(result11,result21,result12,result22))
+  return(matrix(data = output, nrow = 2, ncol = 2, dimnames = NULL))
 }
-new.oil <- function(N,b1,b2,l,dl,d2l,tol){
+#Newton's Method
+new.oil <- function(N,b1,b2,dl,d2l,tol){
   n <- length(N)
   i <- 1
-  theta.old <- 
+  theta.old <- c(1,1)
   for(i in 1:n){
     theta.new = theta.old - dl(N,b1,b2,theta.old)/d2l(N,b1,b2,theta.old)
     if(abs(theta.new - theta.old) <= tol){
-      output.new <- a
+      output.new <- theta.new
       return(output.new)
     }
-    a0 <- a
+    theta.old <- theta.new
   }
 }
-
-fish.oil <- function(N,b1,b2,l,dl,I,tol){
+#Fisher Information Approach
+fish.oil <- function(N,b1,b2,dl,I,tol){
   n <- length(N)
   i <- 1
-  theta.old <- 
+  theta.old <- c(1,1)
   for(i in 1:n){
     theta.new = theta.old + dl(N,b1,b2,theta.old)/I(N,b1,b2,theta.old)
     if(abs(a-a0) <= tol){
-      output.fish <- a
+      output.fish <- theta.new
       return(output.fish)
     }
-    a0 <- a
+    theta.old <- theta.new
   }
 }
+#main body of code (i.e. no function definitions)
 N <- data.oil$spills
 b1 <- data.oil$importexport
 b2 <- data.oil$domestic
-
+output.new <- new.oil(N,b1,b2,dl,d2l,1e-5)
+ouput.fish <- fish.oil(N,b1,b2,dl,I,1e-5)
 
 ```
 
