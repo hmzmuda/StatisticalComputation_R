@@ -293,8 +293,8 @@ fish.oil <- function(N,b1,b2,dl,I,tol){
 N <- data.oil$spills
 b1 <- data.oil$importexport
 b2 <- data.oil$domestic
-output.new <- new.oil(N,b1,b2,dl,d2l,1e-2)
-ouput.fish <- fish.oil(N,b1,b2,dl,I,1e-2)
+#output.new <- new.oil(N,b1,b2,dl,d2l,1e-2)
+#output.fish <- fish.oil(N,b1,b2,dl,I,1e-2)
 
 ```
 
@@ -371,4 +371,29 @@ legend('topright', col = c("red","green"), lwd = 2, legend = c("Density of Galax
 
 \newpage
 # Question 4
+## Using a,b parameters
+Because some of the data in the problem is omitted (censored), we can say we only have the observed data set, not the complete data set. To find the $Q$ function for the EM algorithm (and MCEM algorithm).
 
+### Step 1: Find the Joint pdf of the observed data
+We are given a Weibull distribution with the density function $f(x) = abx^{b-1}exp(-ax^b)$ for $0 < x$ and for the parameters $a$ and $b$.
+\[ 
+  \begin{cases} 
+      \delta_i = 1, & X_i = Y_i = f(x_i,\delta_i = 1) = abx_i^{b-1}exp(-ax_i^{b})\int_{x_i}^{\infty} g(c)dc \\
+      \delta_i = 0, & X_i = C_i = f(x_i,\delta_i = 0) = exp(-ax_i^{b})g(x_i) \\
+  \end{cases}
+\]
+We can then combine the two cases into the following:
+$$[abx_i^{b-1}exp(-ax_i^{b})\int_{x_i}^{\infty} g(c | \eta)dc]^{\delta_i} [exp(-ax_i^{b})g(x_i | \eta)]^{1-\delta_i}$$
+Because we do not care about the function $g$ or $\eta$, we can focus on the other parts of the equation:
+$$\Pi_{i = 1}^{n} a^{\delta_i}b^{\delta_i}x_i^{\delta_i (b-1)} exp(-ax_i^b)$$
+$$(ab)^{\Sigma\delta_i}\Sigma_{i = 1}^{n}(x_i^{\delta_i (b-1)}exp(-ax_i^b))$$
+
+### Step 2: Calculate the observed log likelihood
+With the joint pdf simplified and including the censor indicator, $\delta$, we can now calculate the log likelihood.
+This can be found by $l(a,b|X_i, \delta_i) = \Sigma_{i = 1}^{n}log(f(X_i,\delta_i | a,b))$. Expanding this equation out we get:
+$$l(a,b|X_i, \delta_i) = \Sigma_{i = 1}^{n} \delta_i (log(a) + log(b)) - \Sigma_{i = 1}^{n}ax_i^b + log(\Sigma_{i = 1}^{n}x_i^{\delta_i(b-1)})$$
+
+### Step 3: Derive the Q-function
+For our last step to derive the $Q$ function, we will take the expctation of the log likelihood function:
+$$Q(a,b|a^{(t)},b^{(t)}) = E[l(a,b|X_i, \delta_i)]$$
+$$Q(a,b|a^{(t)},b^{(t)}) = \Sigma_{i = 1}^{n} \delta_i (log(a) + log(b)) - E[\Sigma_{i = 1}^{n}ax_i^b] + E[log(\Sigma_{i = 1}^{n}x_i^{\delta_i(b-1)})]$$

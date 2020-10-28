@@ -3,7 +3,7 @@
     "path": "D:/Documents/Classes/ComputationalStats/StatisticalComputation_R/Homework2/HW2_10272020_Reload.Rmd",
     "project_path": "HW2_10272020_Reload.Rmd",
     "type": "r_markdown",
-    "hash": "1701765843",
+    "hash": "3475528511",
     "contents": "",
     "dirty": false,
     "created": 1603831203253.0,
@@ -11,17 +11,17 @@
     "relative_order": 1,
     "properties": {
         "tempName": "Untitled1",
-        "cursorPosition": "283,63",
-        "scrollLine": "257",
-        "last_setup_crc32": "67A876B3ed4f38e1",
+        "cursorPosition": "376,0",
+        "scrollLine": "309",
+        "last_setup_crc32": "",
         "docOutlineVisible": "0"
     },
     "folds": "17|19|64|3|\n101|44|105|0|\n107|41|109|0|\n115|46|193|0|\n300|26|301|0|\n302|31|305|0|\n308|12|371|8|\n317|8|371|8|\n",
-    "lastKnownWriteTime": 1603838500,
+    "lastKnownWriteTime": 1603861546,
     "encoding": "UTF-8",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1603838500934,
+    "last_content_update": 1603861546847,
     "read_only": false,
     "read_only_alternatives": []
 }
