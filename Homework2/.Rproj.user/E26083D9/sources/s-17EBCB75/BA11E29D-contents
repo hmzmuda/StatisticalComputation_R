@@ -192,6 +192,7 @@ with this we can get the equation to be used in the Newton-Raphson update to get
   \end{bmatrix}
 \end{equation}
 
+
 ### Part b: Deriving the Fisher Scoring Method
 Similar to part (a), we will use the log likelihood to find the equation to find the parameters $\alpha_1$ and $\alpha_2$. Instead of only taking the second derivative, we will take the variance of the first derivative to get the Fisher Information. This output will be a two by two matrix as well but instead is the Covariance matrix instead of the Hessian matrix:
 \begin{equation}
@@ -226,6 +227,7 @@ Equation 10 then simplifies down to the Fisher Scoring Approach:
   I(\theta^t)^{-1} l\prime(\theta^t)
 \end{equation}
 
+
 ### Part c: Implementing Newton and Fisher Methods in R
 ```{r Netwon Oil Spill}
 #import data set from Givens et al.
@@ -259,6 +261,7 @@ I <- function(N, b1, b2, theta.old){
   output <- as.numeric(list(result11,result12,result12,result22))
   return(matrix(data = output, nrow = 2, byrow = TRUE))
 }
+
 #Newton's Method
 new.oil <- function(N,b1,b2,dl,d2l){
   n <- length(N)
@@ -269,17 +272,13 @@ new.oil <- function(N,b1,b2,dl,d2l){
   for(i in 1:n){
     theta.new = theta.old - (solve(d2l(N,b1,b2,theta.old)) %*% dl(N,b1,b2,theta.old))
     theta.values[i+1,] = theta.new
-    # if(abs(theta.new - theta.old) <= tol){
-    #   output.new <- theta.new
-    #   return(output.new)
-    # }
-    # theta.old <- theta.new
   }
   return(theta.values)
 }
+
 #Fisher Information Approach
 fish.oil <- function(N,b1,b2,dl,I){
-   n <- length(N)
+  n <- length(N)
   i <- 1
   theta.old <- c(1,1)#need it to be a 2x26 matrix, but not sure what inital value to assign to it.
   theta.values = matrix(0,n+1,2)
@@ -290,16 +289,19 @@ fish.oil <- function(N,b1,b2,dl,I){
   }
   return(theta.values)
 }
+
 #main body of code (i.e. no function definitions)
 N <- data.oil$spills
 b1 <- data.oil$importexport
 b2 <- data.oil$domestic
 output.new <- new.oil(N,b1,b2,dl,d2l)
 output.fish <- fish.oil(N,b1,b2,dl,I)
-
+#How can I best compare performace of these two functions?
+#Use convergence map like in the Givens et al. example?
 ```
 
 ### Part d: Standard Error
+
 
 ### Part e: Quasi-newton Method
 
