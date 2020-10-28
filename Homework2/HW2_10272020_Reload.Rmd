@@ -241,60 +241,61 @@ dl <- function(N, b1, b2, theta.old){
   result1 <- sum((N*b1)/(theta.old)-sum(b1))
   result2 <- sum((N*b2)/(theta.old)-sum(b2))
   output <- as.numeric(list(result1,result2))
-  return(matrix(data = output, nrow = 2, ncol = 1, dimnames = NULL))
+  return(matrix(data = output, ncol = 1))
 }
 #double derivative of the likelihood function
 d2l <- function(N, b1, b2, theta.old){
   result11 <- sum(-(N*b1^2)/(theta.old)^2)#1st row, 1st col
-  result12 <- sum(-(N*b1*b2)/(theta.old)^2)#1st row,2nd col
+  result12 <- sum(-(N*b1*b2)/(theta.old)^2)#non-principal components
   result22 <- sum(-(N*b2^2)/(theta.old)^2)#2nd row, 2nd col
-  result21 <- sum(-(N*b2*b1)/(theta.old)^2)#2nd row, 1st col
-  output <- as.numeric(list(result11,result21,result12,result22))
-  return(matrix(data = output, nrow = 2, ncol = 2, dimnames = NULL))
+  output <- as.numeric(list(result11,result12,result12,result22))
+  return(matrix(data = output, nrow = 2, ncol = 2, byrow = TRUE))
 }
 #Fisher Information
 I <- function(N, b1, b2, theta.old){
   result11 <- sum(mean((N*b1^2)/(theta.old)^2))#1st row, 1st col
-  result12 <- sum(mean((N*b1*b2)/(theta.old)^2))#1st row,2nd col
+  result12 <- sum(mean((N*b1*b2)/(theta.old)^2))#non-principal components
   result22 <- sum(mean((N*b2^2)/(theta.old)^2))#2nd row, 2nd col
-  result21 <- sum(mean((N*b2*b1)/(theta.old)^2))#2nd row, 1st col
-  output <- as.numeric(list(result11,result21,result12,result22))
-  return(matrix(data = output, nrow = 2, ncol = 2, dimnames = NULL))
+  output <- as.numeric(list(result11,result12,result12,result22))
+  return(matrix(data = output, nrow = 2, byrow = TRUE))
 }
 #Newton's Method
-new.oil <- function(N,b1,b2,dl,d2l,tol){
+new.oil <- function(N,b1,b2,dl,d2l){
   n <- length(N)
   i <- 1
   theta.old <- c(1,1)#need it to be a 2x26 matrix, but not sure what inital value to assign to it.
+  theta.values = matrix(0,n+1,2)
+  theta.values[1,] = theta.old
   for(i in 1:n){
-    theta.new = theta.old - (solve(d2l(N[i],b1[i],b2[i],theta.old)) %*% dl(N[i],b1[i],b2[i],theta.old))
-    if(abs(theta.new - theta.old) <= tol){
-      output.new <- theta.new
-      return(output.new)
-    }
-    theta.old <- theta.new
+    theta.new = theta.old - (solve(d2l(N,b1,b2,theta.old)) %*% dl(N,b1,b2,theta.old))
+    theta.values[i+1,] = theta.new
+    # if(abs(theta.new - theta.old) <= tol){
+    #   output.new <- theta.new
+    #   return(output.new)
+    # }
+    # theta.old <- theta.new
   }
+  return(theta.values)
 }
 #Fisher Information Approach
-fish.oil <- function(N,b1,b2,dl,I,tol){
-  n <- length(N)
+fish.oil <- function(N,b1,b2,dl,I){
+   n <- length(N)
   i <- 1
-  theta.old <- c(1,1)
+  theta.old <- c(1,1)#need it to be a 2x26 matrix, but not sure what inital value to assign to it.
+  theta.values = matrix(0,n+1,2)
+  theta.values[1,] = theta.old
   for(i in 1:n){
-    theta.new = theta.old + (solve(I(N[i],b1[i],b2[i],theta.old)) %*% dl(N[i],b1[i],b2[i],theta.old))
-    if(abs(theta.new - theta.old) <= tol){
-      output.fish <- theta.new
-      return(output.fish)
-    }
-    theta.old <- theta.new
+    theta.new = theta.old - (solve(I(N,b1,b2,theta.old)) %*% dl(N,b1,b2,theta.old))
+    theta.values[i+1,] = theta.new
   }
+  return(theta.values)
 }
 #main body of code (i.e. no function definitions)
 N <- data.oil$spills
 b1 <- data.oil$importexport
 b2 <- data.oil$domestic
-#output.new <- new.oil(N,b1,b2,dl,d2l,1e-2)
-#output.fish <- fish.oil(N,b1,b2,dl,I,1e-2)
+output.new <- new.oil(N,b1,b2,dl,d2l)
+output.fish <- fish.oil(N,b1,b2,dl,I)
 
 ```
 
@@ -394,6 +395,6 @@ This can be found by $l(a,b|X_i, \delta_i) = \Sigma_{i = 1}^{n}log(f(X_i,\delta_
 $$l(a,b|X_i, \delta_i) = \Sigma_{i = 1}^{n} \delta_i (log(a) + log(b)) - \Sigma_{i = 1}^{n}ax_i^b + log(\Sigma_{i = 1}^{n}x_i^{\delta_i(b-1)})$$
 
 ### Step 3: Derive the Q-function
-For our last step to derive the $Q$ function, we will take the expctation of the log likelihood function:
+For our last step to derive the $Q$ function, we will take the expectation of the log likelihood function:
 $$Q(a,b|a^{(t)},b^{(t)}) = E[l(a,b|X_i, \delta_i)]$$
 $$Q(a,b|a^{(t)},b^{(t)}) = \Sigma_{i = 1}^{n} \delta_i (log(a) + log(b)) - E[\Sigma_{i = 1}^{n}ax_i^b] + E[log(\Sigma_{i = 1}^{n}x_i^{\delta_i(b-1)})]$$
