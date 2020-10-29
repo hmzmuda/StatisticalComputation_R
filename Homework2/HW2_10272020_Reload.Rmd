@@ -267,9 +267,9 @@ dl <- function(N, b1, b2, theta.old){
 }
 #double derivative of the likelihood function
 d2l <- function(N, b1, b2, theta.old){
-  result11 <- sum(-(N*b1^2)/(theta.old[1]*b1 + theta.old[2]*b2)^2)#1st row, 1st col
-  result12 <- sum(-(N*b1*b2)/(theta.old[1]*b1 + theta.old[2]*b2)^2)#non-principal components
-  result22 <- sum(-(N*b2^2)/(theta.old[1]*b1 + theta.old[2]*b2)^2)#2nd row, 2nd col
+  result11 <- sum((N*b1^2)/(theta.old[1]*b1 + theta.old[2]*b2)^2)#1st row, 1st col
+  result12 <- sum((N*b1*b2)/(theta.old[1]*b1 + theta.old[2]*b2)^2)#non-principal components
+  result22 <- sum((N*b2^2)/(theta.old[1]*b1 + theta.old[2]*b2)^2)#2nd row, 2nd col
   output <- as.numeric(list(result11,result12,result12,result22))
   return(matrix(data = output, nrow = 2, ncol = 2, byrow = TRUE))
 }
@@ -286,38 +286,39 @@ I <- function(N, b1, b2, theta.old){
 new.oil <- function(N,b1,b2){
   n <- length(N)
   i <- 1
-  theta.old <- c(-2,-2)#need it to be a 2x26 matrix, but not sure what inital value to assign to it.
-  theta.values = matrix(0,n+1,2)
-  theta.values[1,] = theta.old
+  j <- 1
+  theta.old <- matrix(1,2,1)#need it to be a 2x26 matrix, but not sure what initial value to assign to it.
+  theta.values <- matrix(0,n+1,2)
+  theta.values[1,] <- theta.old
   for(i in 1:n){
-    theta.new = theta.old - (solve(d2l(N,b1,b2,theta.old)) %*% dl(N,b1,b2,theta.old))
+    theta.new <- theta.old - (solve(d2l(N,b1,b2,theta.old)) %*% dl(N,b1,b2,theta.old))
     theta.values[i+1,] <- theta.new
-    # if(abs(c(theta.new[1],theta.new[2])-theta.old) > 1e-6){
-    #   theta.old <- c(theta.new[1],theta.new[2])
-    # }
-    # else{
-    #   theta.values[i+1,] <- theta.new
-    # }
+    if(abs(theta.new[1] - theta.old[1]) <= 1e-6){
+      if(abs(theta.new[2] - theta.old[2]) <= 1e-6){
+      return(theta.values)
+      }
+    }
+    #theta.old <- theta.new
   }
   return(theta.values)
 }
 
 #Fisher Information Approach
-fish.oil <- function(N,b1,b2){
-  n <- length(N)
-  i <- 1
-  theta.old <- c(-2,-2)#need it to be a 2x26 matrix, but not sure what inital value to assign to it.
-  theta.values = matrix(0,n+1,2)
-  theta.values[1,] = theta.old
-  for(i in 1:n){
-    theta.new <- theta.old - (solve(I(N,b1,b2,theta.old)) %*% dl(N,b1,b2,theta.old))
-    if(abs(c(theta.new[1],theta.new[2]) - theta.old) <= c(1e-6,1e-6)){
-      theta.values[i+1,] = theta.new
-   }
-   theta.old <- c(theta.new[1],theta.new[2])
-  }
-  return(theta.values)
-}
+# fish.oil <- function(N,b1,b2){
+#   n <- length(N)
+#   i <- 1
+#   theta.old <- c(-2,-2)#need it to be a 2x26 matrix, but not sure what inital value to assign to it.
+#   theta.values = matrix(0,n+1,2)
+#   theta.values[1,] = theta.old
+#   for(i in 1:n){
+#     theta.new = theta.old - (solve(I(N,b1,b2,theta.old)) %*% dl(N,b1,b2,theta.old))
+#     if(abs(c(theta.new[1],theta.new[2]) - theta.old) <= c(1e-6,1e-6)){
+#       theta.values[i+1,] = theta.new
+#    }
+#    theta.old <- c(theta.new[1],theta.new[2])
+#   }
+#   return(theta.values)
+# }
 
 #main body of code (i.e. no function definitions)
 N <- data.oil$spills
