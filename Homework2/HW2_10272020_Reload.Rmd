@@ -356,18 +356,19 @@ $$\hat{\sigma_j} = \frac{\Sigma_{i}(X_i-\mu_j)^2 P(\theta_j|X_i)}{\Sigma_{i}P(\t
 data(galaxies)
 x <- galaxies
 n <- length(x)
+#set.seed(200)
 #make an estimation for the mu, sigma, and alpha variables. Can use k clustering based on the remark
 kCluster <- kmeans(x,2)$cluster
 mu1 <- mean(x[kCluster == 1])
 mu2 <- mean(x[kCluster == 2])
 sigma1 <- sd(x[kCluster == 1])
 sigma2 <- sd(x[kCluster == 2])
-alpha <- sum(kCluster == 1)/length(kCluster) #Make alpha based on the first mixture
+alpha <- sum(kCluster == 1)/length(kCluster)#Make alpha based on the first mixture
 #Other variables
 i <- 2 #number of mixture models (two-mixture model)
 tol <- 1e-10 #tolerance for the EM Algorithm
 #Calculate Q
-#initalize Q
+#initialize Q
 Q <- 0
 Q[2] <- sum(log(alpha*dnorm(x,mu1,sqrt(sigma1)))) + sum(log((1-alpha)*dnorm(x,mu2,sqrt(sigma2))))
 #E step: Compute Q(theta | theta^t) where theta = (alpha,mu1,mu2,sig1,sig2)
@@ -411,7 +412,7 @@ legend('topright', col = c("red","green"), lwd = 2, legend = c("Density of Galax
 Because some of the data in the problem is omitted (censored), we can say we only have the observed data set, not the complete data set. To find the $Q$ function for the EM algorithm (and MCEM algorithm).
 
 ### Step 1: Find the Joint pdf of the observed data
-We are given a Weibull distribution with the density function $f(x) = abx^{b-1}exp(-ax^b)$ for $0 < x$ and for the parameters $a$ and $b$.
+We are given a Weibull distribution with the density function $f(x) = abx^{b-1}exp(-ax^b)$ for $0 < x$ and for the parameters $a$ and $b$. We also have the observed data $x_i$ where $x_i = (min(y_i,c_i),\delta_i)$
 \[ 
   \begin{cases} 
       \delta_i = 1, & X_i = Y_i = f(x_i,\delta_i = 1) = abx_i^{b-1}exp(-ax_i^{b})\int_{x_i}^{\infty} g(c)dc \\
@@ -426,14 +427,14 @@ $$(ab)^{\Sigma\delta_i}\Sigma_{i = 1}^{n}(x_i^{\delta_i (b-1)}exp(-ax_i^b))$$
 
 ### Step 2: Calculate the observed log likelihood
 With the joint pdf simplified and including the censor indicator, $\delta$, we can now calculate the log likelihood.
-This can be found by $l(a,b|X_i, \delta_i) = \Sigma_{i = 1}^{n}log(f(X_i,\delta_i | a,b))$. Expanding this equation out we get:
-$$l(a,b|X_i, \delta_i) = \Sigma_{i = 1}^{n} \delta_i (log(a) + log(b)) - \Sigma_{i = 1}^{n}ax_i^b + log(\Sigma_{i = 1}^{n}x_i^{\delta_i(b-1)})$$
+This can be found by $l(x_i, \delta_i|a,b) = \Sigma_{i = 1}^{n}log(f(X_i,\delta_i | a,b))$. Expanding this equation out we get:
+$$l(x_i, \delta_i | a,b) = \Sigma_{i = 1}^{n} \delta_i (log(a) + log(b)) - \Sigma_{i = 1}^{n}ax_i^b + log(\Sigma_{i = 1}^{n}x_i^{\delta_i(b-1)})$$
 
 ### Step 3: Derive the Q-function
 For our last step to derive the $Q$ function, we will take the expectation of the log likelihood function:
-$$Q(a,b|a^{(t)},b^{(t)}) = E[l(a,b|X_i, \delta_i)]$$
-$$Q(a,b|a^{(t)},b^{(t)}) = \Sigma_{i = 1}^{n} \delta_i (log(a) + log(b)) - E[\Sigma_{i = 1}^{n}ax_i^b] + E[log(\Sigma_{i = 1}^{n}x_i^{\delta_i(b-1)})]$$
-$$Q(a,b|a^{(t)},b^{(t)}) = \Sigma_{i = 1}^{n} \delta_i (log(a) + log(b)) - \Sigma_{i = 1}^{n}x_i(\Sigma_{i = 1}^{n}ax_i^b) + \Sigma_{i = 1}^{n}x_i(log(\Sigma_{i = 1}^{n}x_i^{\delta_i(b-1)}))$$
+$$Q(\theta|\theta{(t)}) = E[l(\theta | x_i)|y,\theta^{(t)}]$$
+$$= \Sigma_{i = 1}^{n} E[\delta_i (log(a) + log(b)) - ax_i^b + (b-1)log(x_i) | y,\theta^{(t)}]$$
+$$= \Sigma_{i = 1}^{n} \delta_i (log(a) + log(b)) - \Sigma_{i = 1}^{n}x_i(\Sigma_{i = 1}^{n}ax_i^b) + \Sigma_{i = 1}^{n}x_i(log(\Sigma_{i = 1}^{n}x_i^{\delta_i(b-1)}))$$
 As we can see from this equation, we have $x_i$ in multiple parts of the Q function. Because of this, the Q function is difficult to compute analytically. One work around for this is to calculate an approximation of the $Q$ function, $\hat{Q}$.
 $$\hat{Q}(a,b|a^{(t)},b^{(t)}) = \frac{1}{m^{(t)}}\Sigma_{j = 1}^{m^{(t)}}L(a,b | X_j)$$
 As we can see, the previous equation is much easier to numerically compute. However, as $m^{(t)}$ becomes increasingly smaller the estimator approximation becomes less accurate.
