@@ -267,77 +267,52 @@ dl <- function(N, b1, b2, theta.old){
 }
 #double derivative of the likelihood function
 d2l <- function(N, b1, b2, theta.old){
-  result11 <- -1*sum((N*b1^2)/(theta.old[1]*b1 + theta.old[2]*b2)^2)#1st row, 1st col
-  result12 <- -1*sum((N*b1*b2)/(theta.old[1]*b1 + theta.old[2]*b2)^2)#non-principal components
-  result22 <- -1*sum((N*b2^2)/(theta.old[1]*b1 + theta.old[2]*b2)^2)#2nd row, 2nd col
+  result11 <- -1*sum((N*b1^2)/(theta.old[1]*b1 + theta.old[2]*b2))#1st row, 1st col
+  result12 <- -1*sum((N*b1*b2)/(theta.old[1]*b1 + theta.old[2]*b2))#non-principal components
+  result22 <- -1*sum((N*b2^2)/(theta.old[1]*b1 + theta.old[2]*b2))#2nd row, 2nd col
   output <- as.numeric(list(result11,result12,result12,result22))
   return(matrix(data = output, nrow = 2, ncol = 2, byrow = TRUE))
 }
 #Fisher Information
 I <- function(N, b1, b2, theta.old){
-  result11 <- sum((b1^2)/(theta.old[1]*b1 + theta.old[2]*b2)^2)#1st row, 1st col
-  result12 <- sum((b1*b2)/(theta.old[1]*b1 + theta.old[2]*b2)^2)#non-principal components
-  result22 <- sum((b2^2)/(theta.old[1]*b1 + theta.old[2]*b2)^2)#2nd row, 2nd col
+  result11 <- sum((b1^2)/(theta.old[1]*b1 + theta.old[2]*b2))#1st row, 1st col
+  result12 <- sum((b1*b2)/(theta.old[1]*b1 + theta.old[2]*b2))#non-principal components
+  result22 <- sum((b2^2)/(theta.old[1]*b1 + theta.old[2]*b2))#2nd row, 2nd col
   output <- as.numeric(list(result11,result12,result12,result22))
   return(matrix(data = output, nrow = 2, byrow = TRUE))
 }
 
 #Newton's Method
 new.oil <- function(N,b1,b2){
-  n <- length(N)
+  n <- 200
   i <- 1
   theta.old <- matrix(1,2,1)
-  theta.values <- matrix(0,n+1,2)
-  theta.values[1,] <- theta.old
+  tol <- 10^-10
   for(i in 1:n){
-    theta.new <- theta.old - (solve(d2l(N,b1,b2,theta.old)) %*% dl(N,b1,b2,theta.old))
-    theta.values[i+1,] <- theta.new
-    if(abs(theta.new[1] - theta.old[1]) <= 1e-6){
-      if(abs(theta.new[2] - theta.old[2]) <= 1e-6){
-      return(list("list" = theta.values, root = tail(theta.values,n = 1)))
-      }
+    theta.new = theta.old - (solve(d2l(N,b1,b2,theta.old)) %*% dl(N,b1,b2,theta.old))
+    root <- theta.new
+    current.tol <- sum(abs(theta.new - theta.old))
+    if(current.tol <= tol){
+      return(root)
     }
+    theta.old <- theta.new
   }
-  return(list("list" = theta.values, root = tail(theta.values,n = 1)))
 }
 
-#Fisher Information Approach
-# fish.oil <- function(N,b1,b2){
-#   n <- 100
-#   i <- 1
-#   theta.old <- matrix(1,2,1)
-#   theta.values <- matrix(0,n+1,2)
-#   theta.values[1,] <- theta.old
-#   for(i in 1:n){
-#     theta.new <- theta.old + (solve(I(N,b1,b2,theta.old)) %*% dl(N,b1,b2,theta.old))
-#     theta.values[i+1,] <- theta.new
-#     if(abs(theta.new[1] - theta.old[1]) <= 1e-6){
-#       if(abs(theta.new[2] - theta.old[2]) <= 1e-6){
-#         output = list("list" = theta.values, root = tail(theta.values,n = 1))
-#       return(output)
-#       }
-#     }
-#   }
-#   return(list("list" = theta.values, root = tail(theta.values,n = 1)))
-# }
-
 fish.oil <- function(N,b1,b2){
-  n <- 100
+  n <- 200
   i <- 1
   theta.old <- matrix(1,2,1)
-  theta.values <- matrix(0,n+1,2)
-  theta.values[1,] <- theta.old
-  tolerance <- 100
-  toll <- 10^(-10)
-  while(tolerance > toll){
-    theta.new <- theta.old + (solve(I(N,b1,b2,theta.old)) %*% dl(N,b1,b2,theta.old))
-    #theta.values[i+1,] <- theta.new
+  tol <- 10^-10
+  for(i in 1:n){
+    theta.new = theta.old + (solve(I(N,b1,b2,theta.old)) %*% dl(N,b1,b2,theta.old))
     root <- theta.new
+    current.tol <- sum(abs(theta.new - theta.old))
+    if(current.tol <= tol){
+      return(root)
+    }
     theta.old <- theta.new
-    i <- i + 1
-    tolerance <- sum(abs(theta.new-theta.old))
   }
-  return(root)
 }
 
 #main body of code (i.e. no function definitions)
@@ -350,8 +325,8 @@ output.fish <- fish.oil(N,b1,b2)
 #Use convergence map like in the Givens et al. example?
 
 #part d: Calculating the standard error
-newSE = sqrt(solve(I(N,b1,b2,output.new$root)))
-fishSE = sqrt(solve(I(N,b1,b2,output.fish$root)))
+newSE = sqrt(solve(I(N,b1,b2,output.new)))
+fishSE = sqrt(solve(I(N,b1,b2,output.fish)))
 ```
 
 ### Part e: Quasi-newton Method
