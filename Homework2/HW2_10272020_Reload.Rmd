@@ -260,30 +260,30 @@ l <- function(N, theta.old){
 }
 #derivative of the likelihood function
 dl <- function(N, b1, b2, theta.old){
-  result1 <- sum((N*b1)/(theta.old)-sum(b1))
-  result2 <- sum((N*b2)/(theta.old)-sum(b2))
+  result1 <- sum((N*b1)/(theta.old[1]*b1 + theta.old[2]*b2)-sum(b1))
+  result2 <- sum((N*b2)/(theta.old[1]*b1 + theta.old[2]*b2)-sum(b2))
   output <- as.numeric(list(result1,result2))
   return(matrix(data = output, ncol = 1))
 }
 #double derivative of the likelihood function
 d2l <- function(N, b1, b2, theta.old){
-  result11 <- sum(-(N*b1^2)/(theta.old)^2)#1st row, 1st col
-  result12 <- sum(-(N*b1*b2)/(theta.old)^2)#non-principal components
-  result22 <- sum(-(N*b2^2)/(theta.old)^2)#2nd row, 2nd col
+  result11 <- sum(-(N*b1^2)/(theta.old[1]*b1 + theta.old[2]*b2)^2)#1st row, 1st col
+  result12 <- sum(-(N*b1*b2)/(theta.old[1]*b1 + theta.old[2]*b2)^2)#non-principal components
+  result22 <- sum(-(N*b2^2)/(theta.old[1]*b1 + theta.old[2]*b2)^2)#2nd row, 2nd col
   output <- as.numeric(list(result11,result12,result12,result22))
   return(matrix(data = output, nrow = 2, ncol = 2, byrow = TRUE))
 }
 #Fisher Information
 I <- function(N, b1, b2, theta.old){
-  result11 <- sum(N*(sum((N*b1^2)/(theta.old)^2)))#1st row, 1st col
-  result12 <- sum(N*(sum((N*b1*b2)/(theta.old)^2)))#non-principal components
-  result22 <- sum(N*(sum((N*b2^2)/(theta.old)^2)))#2nd row, 2nd col
+  result11 <- sum(N*(sum((N*b1^2)/(theta.old[1]*b1 + theta.old[2]*b2)^2)))#1st row, 1st col
+  result12 <- sum(N*(sum((N*b1*b2)/(theta.old[1]*b1 + theta.old[2]*b2)^2)))#non-principal components
+  result22 <- sum(N*(sum((N*b2^2)/(theta.old[1]*b1 + theta.old[2]*b2)^2)))#2nd row, 2nd col
   output <- as.numeric(list(result11,result12,result12,result22))
   return(matrix(data = output, nrow = 2, byrow = TRUE))
 }
 
 #Newton's Method
-new.oil <- function(N,b1,b2,dl,d2l){
+new.oil <- function(N,b1,b2){
   n <- length(N)
   i <- 1
   theta.old <- c(-2,-2)#need it to be a 2x26 matrix, but not sure what inital value to assign to it.
@@ -303,7 +303,7 @@ new.oil <- function(N,b1,b2,dl,d2l){
 }
 
 #Fisher Information Approach
-fish.oil <- function(N,b1,b2,dl,I){
+fish.oil <- function(N,b1,b2){
   n <- length(N)
   i <- 1
   theta.old <- c(-2,-2)#need it to be a 2x26 matrix, but not sure what inital value to assign to it.
@@ -323,7 +323,7 @@ fish.oil <- function(N,b1,b2,dl,I){
 N <- data.oil$spills
 b1 <- data.oil$importexport
 b2 <- data.oil$domestic
-#output.new <- new.oil(N,b1,b2,dl,d2l)
+output.new <- new.oil(N,b1,b2)
 #output.fish <- fish.oil(N,b1,b2,dl,I)
 #How can I best compare performance of these two functions?
 #Use convergence map like in the Givens et al. example?
