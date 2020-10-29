@@ -16,12 +16,13 @@ library(MASS)
 # Question 1
 
 ## Bisection Method
-
 ```{r bisection method}
 bisection <- function(f, a, b, nMax, tol)
 {
   #initiate the a and b value, assume intervals will be proper
   iteration <- 0
+  rootArray <- nMax
+  
   #check bounds
   if(f(a) == 0.0){
     return(a)
@@ -32,6 +33,7 @@ bisection <- function(f, a, b, nMax, tol)
   # Begin method's loop
   for (i in 1:nMax){
     c <- (a + b)/2 #Calc the midpoint
+    rootArray[i] <- c
     if(f(c) != 0) {
       #TRUE: f(c) > tol AND i <=NMAX
       if((abs(f(c)) > tol)) {
@@ -44,7 +46,8 @@ bisection <- function(f, a, b, nMax, tol)
           b <- c
         }
         c <- (a + b)/2
-        iteration = iteration + 1
+        root <- tail(rootArray,n = 1)
+        result <- list('root' = root, 'iterations' = rootArray)
       }
       else {
         #the f(c) is within the range of tolerance
@@ -56,13 +59,15 @@ bisection <- function(f, a, b, nMax, tol)
       break
     }
   }
-  return(list("it" = iteration, "root" = c))
+  return(list('root' = root, 'iterations' = rootArray))
 }
 
 fcn <- function(x){sqrt(x)-cos(x)}
-bmMe <- bisection(fcn, 0, 2, 3, 1e-7)
-bmMe$root
+bmMe <- bisection(fcn, 0, 2, 10, 1e-5)
+bmMe$iterations
+bmMe$iterations[3]
 ```
+
 ## Newton-Raphson Method
 ```{r newton method}
 newton <- function(f, dx, a, b, inital, nMax, tol){
@@ -93,13 +98,15 @@ newton <- function(f, dx, a, b, inital, nMax, tol){
 
 f <- function(x){sqrt(x)-cos(x)}
 dx <- function(x){0.5*(x^(-0.5)) + sin(x)}
-newMe <- newton(f, dx, 0, 2, 1, 3, 1e-3)
+newMe <- newton(f, dx, 0, 2, 1, 10, 1e-5)
 newMe$root
+newMe$iterations
+newMe$iterations[3]
 ```
 
-The Newton-Raphuson Method finds the root within the three iterations, compared to the Bisection Method. The Bisection Method found 0.625, which is not even within the tolerance. 
+The Newton-Raphuson Method finds the root within the three iterations, compared to the Bisection Method. The Bisection Method found 0.75 when the tolerance is 1e-5. For the same tolerance, the Newton's Method found the root within 3 to 4 iterations (0.6417144), depending on the number of iterations. The Newton's Method is more effective because an initial value is given before entering the loop and the updated value utilizes the slop of the function (dx) instead of simply going by midpoint x-values.
 
-```{r bisection method check, include=FALSE}
+```{r bisection method check,include=FALSE}
 bm <- bisection.method(FUN = function(x) sqrt(x)-cos(x),rg = c(0,2),interact = FALSE,main = "Bisection Method")
 iteration <- bm$iter
 
@@ -110,6 +117,7 @@ new <- newton.method(FUN = function(x) sqrt(x)-cos(x),init = 1,rg = c(0,2),inter
 ```
 
 \newpage
+
 
 # Question 2
 
@@ -193,6 +201,7 @@ with this we can get the equation to be used in the Newton-Raphson update to get
 \end{equation}
 
 
+
 ### Part b: Deriving the Fisher Scoring Method
 Similar to part (a), we will use the log likelihood to find the equation to find the parameters $\alpha_1$ and $\alpha_2$. Instead of only taking the second derivative, we will take the variance of the first derivative to get the Fisher Information. This output will be a two by two matrix as well but instead is the Covariance matrix instead of the Hessian matrix:
 \begin{equation}
@@ -214,7 +223,17 @@ Or we could take the (negative) expectation of the second derivative of the log 
     && \sum_{i = 1}^{n} E[\frac{N_i b_{i2}^2}{(\alpha_1b_{i1} + \alpha_2b_{i2})^2}]
   \end{bmatrix}
 \end{equation}
-Equation 10 then simplifies down to the Fisher Scoring Approach:
+\begin{equation}
+  I(\alpha_1,\alpha_2) = -E[l\prime\prime(N(\alpha_1,\alpha_2))] = 
+   \begin{bmatrix}
+    \sum_{i = 1}^{n} N_i(\sum_{i = 1}^{n} \frac{N_i b_{i1}^2}{(\alpha_1b_{i1} + \alpha_2b_{i2})^2})
+    && \sum_{i = 1}^{n} N_i(\sum_{i = 1}^{n}\frac{N_i b_{i1}b_{i2}}{(\alpha_1b_{i1} + \alpha_2b_{i2})^2})
+    \\
+    \sum_{i = 1}^{n} N_i(\sum_{i = 1}^{n}\frac{N_i b_{i1}b_{i2}}{(\alpha_1b_{i1} + \alpha_2b_{i2})^2})
+    && \sum_{i = 1}^{n} N_i(\sum_{i = 1}^{n}\frac{N_i b_{i2}^2}{(\alpha_1b_{i1} + \alpha_2b_{i2})^2})
+  \end{bmatrix}
+\end{equation}
+Equation 11 then simplifies down to the Fisher Scoring Approach:
 \begin{equation}
   \begin{bmatrix}
     \alpha_1(t + 1)\\ \alpha_2(t+1)
@@ -226,6 +245,7 @@ Equation 10 then simplifies down to the Fisher Scoring Approach:
   +
   I(\theta^t)^{-1} l\prime(\theta^t)
 \end{equation}
+
 
 
 ### Part c: Implementing Newton and Fisher Methods in R
@@ -255,9 +275,9 @@ d2l <- function(N, b1, b2, theta.old){
 }
 #Fisher Information
 I <- function(N, b1, b2, theta.old){
-  result11 <- sum(mean((N*b1^2)/(theta.old)^2))#1st row, 1st col
-  result12 <- sum(mean((N*b1*b2)/(theta.old)^2))#non-principal components
-  result22 <- sum(mean((N*b2^2)/(theta.old)^2))#2nd row, 2nd col
+  result11 <- sum(N*(sum((N*b1^2)/(theta.old)^2)))#1st row, 1st col
+  result12 <- sum(N*(sum((N*b1*b2)/(theta.old)^2)))#non-principal components
+  result22 <- sum(N*(sum((N*b2^2)/(theta.old)^2)))#2nd row, 2nd col
   output <- as.numeric(list(result11,result12,result12,result22))
   return(matrix(data = output, nrow = 2, byrow = TRUE))
 }
@@ -266,12 +286,18 @@ I <- function(N, b1, b2, theta.old){
 new.oil <- function(N,b1,b2,dl,d2l){
   n <- length(N)
   i <- 1
-  theta.old <- c(1,1)#need it to be a 2x26 matrix, but not sure what inital value to assign to it.
+  theta.old <- c(-2,-2)#need it to be a 2x26 matrix, but not sure what inital value to assign to it.
   theta.values = matrix(0,n+1,2)
   theta.values[1,] = theta.old
   for(i in 1:n){
     theta.new = theta.old - (solve(d2l(N,b1,b2,theta.old)) %*% dl(N,b1,b2,theta.old))
-    theta.values[i+1,] = theta.new
+    theta.values[i+1,] <- theta.new
+    # if(abs(c(theta.new[1],theta.new[2])-theta.old) > 1e-6){
+    #   theta.old <- c(theta.new[1],theta.new[2])
+    # }
+    # else{
+    #   theta.values[i+1,] <- theta.new
+    # }
   }
   return(theta.values)
 }
@@ -280,12 +306,15 @@ new.oil <- function(N,b1,b2,dl,d2l){
 fish.oil <- function(N,b1,b2,dl,I){
   n <- length(N)
   i <- 1
-  theta.old <- c(1,1)#need it to be a 2x26 matrix, but not sure what inital value to assign to it.
+  theta.old <- c(-2,-2)#need it to be a 2x26 matrix, but not sure what inital value to assign to it.
   theta.values = matrix(0,n+1,2)
   theta.values[1,] = theta.old
   for(i in 1:n){
-    theta.new = theta.old - (solve(I(N,b1,b2,theta.old)) %*% dl(N,b1,b2,theta.old))
-    theta.values[i+1,] = theta.new
+    theta.new <- theta.old - (solve(I(N,b1,b2,theta.old)) %*% dl(N,b1,b2,theta.old))
+    if(abs(c(theta.new[1],theta.new[2]) - theta.old) <= c(1e-6,1e-6)){
+      theta.values[i+1,] = theta.new
+   }
+   theta.old <- c(theta.new[1],theta.new[2])
   }
   return(theta.values)
 }
@@ -294,21 +323,22 @@ fish.oil <- function(N,b1,b2,dl,I){
 N <- data.oil$spills
 b1 <- data.oil$importexport
 b2 <- data.oil$domestic
-output.new <- new.oil(N,b1,b2,dl,d2l)
-output.fish <- fish.oil(N,b1,b2,dl,I)
-#How can I best compare performace of these two functions?
+#output.new <- new.oil(N,b1,b2,dl,d2l)
+#output.fish <- fish.oil(N,b1,b2,dl,I)
+#How can I best compare performance of these two functions?
 #Use convergence map like in the Givens et al. example?
 ```
+
 
 ### Part d: Standard Error
 
 
 ### Part e: Quasi-newton Method
 
+
 \newpage
 
 
-\newpage
 # Question 3
 ##Part a
 based on the problem, we know we are given an observed data set $X = (X_1, X_2, ...,X_n)$ where $X_i \sim \alpha N(\mu_1 , \sigma_1^2) + (1-\alpha)N(\mu_2, \sigma_2^2)$. with this, and knowing we have a two-component mixture model, we can derive the EM algorithm to find $\hat{\theta}$ where $\theta = (\alpha, \mu_1,\mu_2,\sigma_1,\sigma_2)$. For the $Q$ function we have:
@@ -373,6 +403,7 @@ legend('topright', col = c("red","green"), lwd = 2, legend = c("Density of Galax
 ```
 
 \newpage
+
 # Question 4
 ## Using a,b parameters
 Because some of the data in the problem is omitted (censored), we can say we only have the observed data set, not the complete data set. To find the $Q$ function for the EM algorithm (and MCEM algorithm).
@@ -400,3 +431,9 @@ $$l(a,b|X_i, \delta_i) = \Sigma_{i = 1}^{n} \delta_i (log(a) + log(b)) - \Sigma_
 For our last step to derive the $Q$ function, we will take the expectation of the log likelihood function:
 $$Q(a,b|a^{(t)},b^{(t)}) = E[l(a,b|X_i, \delta_i)]$$
 $$Q(a,b|a^{(t)},b^{(t)}) = \Sigma_{i = 1}^{n} \delta_i (log(a) + log(b)) - E[\Sigma_{i = 1}^{n}ax_i^b] + E[log(\Sigma_{i = 1}^{n}x_i^{\delta_i(b-1)})]$$
+$$Q(a,b|a^{(t)},b^{(t)}) = \Sigma_{i = 1}^{n} \delta_i (log(a) + log(b)) - \Sigma_{i = 1}^{n}x_i(\Sigma_{i = 1}^{n}ax_i^b) + \Sigma_{i = 1}^{n}x_i(log(\Sigma_{i = 1}^{n}x_i^{\delta_i(b-1)}))$$
+As we can see from this equation, we have $x_i$ in multiple parts of the Q function. Because of this, the Q function is difficult to compute analytically. One work around for this is to calculate an approximation of the $Q$ function, $\hat{Q}$.
+$$\hat{Q}(a,b|a^{(t)},b^{(t)}) = \frac{1}{m^{(t)}}\Sigma_{j = 1}^{m^{(t)}}L(a,b | X_j)$$
+As we can see, the previous equation is much easier to numerically compute. However, as $m^{(t)}$ becomes increasingly smaller the estimator approximation becomes less accurate.
+We can also use Conditional Maximization steps in the M step. This would simplify the estimation of $a$ and $b$ in the $Q$ function more easily than the $Q$ function using the EM algorithm.
+

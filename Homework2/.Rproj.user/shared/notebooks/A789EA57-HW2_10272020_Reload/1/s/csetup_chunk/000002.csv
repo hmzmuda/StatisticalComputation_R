@@ -1,7 +1,0 @@
-"0","knitr::opts_chunk$set(echo = TRUE)"
-"0","library(NLRoot)"
-"0","library(animation)"
-"0","library(optimr)"
-"2","package ‘optimr’ was built under R version 4.0.3"
-"0","library(MASS)"
-"2","package ‘MASS’ was built under R version 4.0.3"
