@@ -260,24 +260,24 @@ l <- function(N, theta.old){
 }
 #derivative of the likelihood function
 dl <- function(N, b1, b2, theta.old){
-  result1 <- sum((N*b1)/(theta.old[1]*b1 + theta.old[2]*b2)-sum(b1))
-  result2 <- sum((N*b2)/(theta.old[1]*b1 + theta.old[2]*b2)-sum(b2))
+  result1 <- sum((N*b1)/(theta.old[1]*b1 + theta.old[2]*b2)-b1)
+  result2 <- sum((N*b2)/(theta.old[1]*b1 + theta.old[2]*b2)-b2)
   output <- as.numeric(list(result1,result2))
   return(matrix(data = output, ncol = 1))
 }
 #double derivative of the likelihood function
 d2l <- function(N, b1, b2, theta.old){
-  result11 <- sum(-(N*b1^2)/(theta.old[1]*b1 + theta.old[2]*b2)^2)#1st row, 1st col
-  result12 <- sum(-(N*b1*b2)/(theta.old[1]*b1 + theta.old[2]*b2)^2)#non-principal components
-  result22 <- sum(-(N*b2^2)/(theta.old[1]*b1 + theta.old[2]*b2)^2)#2nd row, 2nd col
+  result11 <- -1*sum((N*b1^2)/(theta.old[1]*b1 + theta.old[2]*b2)^2)#1st row, 1st col
+  result12 <- -1*sum((N*b1*b2)/(theta.old[1]*b1 + theta.old[2]*b2)^2)#non-principal components
+  result22 <- -1*sum((N*b2^2)/(theta.old[1]*b1 + theta.old[2]*b2)^2)#2nd row, 2nd col
   output <- as.numeric(list(result11,result12,result12,result22))
   return(matrix(data = output, nrow = 2, ncol = 2, byrow = TRUE))
 }
 #Fisher Information
 I <- function(N, b1, b2, theta.old){
-  result11 <- sum(N*(sum((N*b1^2)/(theta.old[1]*b1 + theta.old[2]*b2)^2)))#1st row, 1st col
-  result12 <- sum(N*(sum((N*b1*b2)/(theta.old[1]*b1 + theta.old[2]*b2)^2)))#non-principal components
-  result22 <- sum(N*(sum((N*b2^2)/(theta.old[1]*b1 + theta.old[2]*b2)^2)))#2nd row, 2nd col
+  result11 <- sum((b1^2)/(theta.old[1]*b1 + theta.old[2]*b2)^2)#1st row, 1st col
+  result12 <- sum((b1*b2)/(theta.old[1]*b1 + theta.old[2]*b2)^2)#non-principal components
+  result22 <- sum((b2^2)/(theta.old[1]*b1 + theta.old[2]*b2)^2)#2nd row, 2nd col
   output <- as.numeric(list(result11,result12,result12,result22))
   return(matrix(data = output, nrow = 2, byrow = TRUE))
 }
@@ -294,32 +294,51 @@ new.oil <- function(N,b1,b2){
     theta.values[i+1,] <- theta.new
     if(abs(theta.new[1] - theta.old[1]) <= 1e-6){
       if(abs(theta.new[2] - theta.old[2]) <= 1e-6){
-      return(theta.values)
+      return(list("list" = theta.values, root = tail(theta.values,n = 1)))
       }
     }
   }
-  return(theta.values)
+  return(list("list" = theta.values, root = tail(theta.values,n = 1)))
 }
 
 #Fisher Information Approach
+# fish.oil <- function(N,b1,b2){
+#   n <- 100
+#   i <- 1
+#   theta.old <- matrix(1,2,1)
+#   theta.values <- matrix(0,n+1,2)
+#   theta.values[1,] <- theta.old
+#   for(i in 1:n){
+#     theta.new <- theta.old + (solve(I(N,b1,b2,theta.old)) %*% dl(N,b1,b2,theta.old))
+#     theta.values[i+1,] <- theta.new
+#     if(abs(theta.new[1] - theta.old[1]) <= 1e-6){
+#       if(abs(theta.new[2] - theta.old[2]) <= 1e-6){
+#         output = list("list" = theta.values, root = tail(theta.values,n = 1))
+#       return(output)
+#       }
+#     }
+#   }
+#   return(list("list" = theta.values, root = tail(theta.values,n = 1)))
+# }
+
 fish.oil <- function(N,b1,b2){
-  n <- length(N)
+  n <- 100
   i <- 1
   theta.old <- matrix(1,2,1)
   theta.values <- matrix(0,n+1,2)
   theta.values[1,] <- theta.old
-  for(i in 1:n){
+  tolerance <- 100
+  toll <- 10^(-10)
+  while(tolerance > toll){
     theta.new <- theta.old + (solve(I(N,b1,b2,theta.old)) %*% dl(N,b1,b2,theta.old))
-    theta.values[i+1,] <- theta.new
-    if(abs(theta.new[1] - theta.old[1]) <= 1e-6){
-      if(abs(theta.new[2] - theta.old[2]) <= 1e-6){
-      return(theta.values)
-      }
-    }
+    #theta.values[i+1,] <- theta.new
+    root <- theta.new
+    theta.old <- theta.new
+    i <- i + 1
+    tolerance <- sum(abs(theta.new-theta.old))
   }
-  return(theta.values)
+  return(root)
 }
-
 
 #main body of code (i.e. no function definitions)
 N <- data.oil$spills
@@ -329,14 +348,16 @@ output.new <- new.oil(N,b1,b2)
 output.fish <- fish.oil(N,b1,b2)
 #How can I best compare performance of these two functions?
 #Use convergence map like in the Givens et al. example?
+
+#part d: Calculating the standard error
+newSE = sqrt(solve(I(N,b1,b2,output.new$root)))
+fishSE = sqrt(solve(I(N,b1,b2,output.fish$root)))
 ```
 
-
-### Part d: Standard Error
-
-
 ### Part e: Quasi-newton Method
+```{r BFGS}
 
+```
 
 \newpage
 
@@ -433,10 +454,11 @@ $$l(x_i, \delta_i | a,b) = \Sigma_{i = 1}^{n} \delta_i (log(a) + log(b)) - \Sigm
 ### Step 3: Derive the Q-function
 For our last step to derive the $Q$ function, we will take the expectation of the log likelihood function:
 $$Q(\theta|\theta{(t)}) = E[l(\theta | x_i)|y,\theta^{(t)}]$$
-$$= \Sigma_{i = 1}^{n} E[\delta_i (log(a) + log(b)) - ax_i^b + (b-1)log(x_i) | y,\theta^{(t)}]$$
-$$= \Sigma_{i = 1}^{n} \delta_i (log(a) + log(b)) - \Sigma_{i = 1}^{n}x_i(\Sigma_{i = 1}^{n}ax_i^b) + \Sigma_{i = 1}^{n}x_i(log(\Sigma_{i = 1}^{n}x_i^{\delta_i(b-1)}))$$
-As we can see from this equation, we have $x_i$ in multiple parts of the Q function. Because of this, the Q function is difficult to compute analytically. One work around for this is to calculate an approximation of the $Q$ function, $\hat{Q}$.
-$$\hat{Q}(a,b|a^{(t)},b^{(t)}) = \frac{1}{m^{(t)}}\Sigma_{j = 1}^{m^{(t)}}L(a,b | X_j)$$
+$$= \Sigma_{i = 1}^{n} E[N (log(a) + log(b)) - ax_i^b|y_i,\theta^{(t)} + (b-1)log(x_i) | y,\theta^{(t)}]$$
+$$= n (log(a) + log(b)) - a \Sigma_{i = 1}^{n} E[x_i^b | y_i,\theta^{(t)}] + (b-1) \Sigma_{i = 1}^{n} E[(log(x_i|y_i, \theta^{(t)})]$$
+As we can see from this equation, we have $x_i$ in multiple parts of the Q function. Moreover we have two different outputs based on the observed data. If we have $x_i = y_i$ then $\delta_i = 1$ while if $x_i = c_i$ then $\delta = 0$ and $L(\theta, x_i | x_i > c_i, \theta^{(t)})$. 
+Because of this, the Q function is difficult to compute analytically. One work around for this is to calculate an approximation of the $Q$ function, $\hat{Q}$.
+$$\hat{Q}(\theta|\theta^{(t)}) = \frac{1}{m^{(t)}}\Sigma_{j = 1}^{m^{(t)}}L(\theta | x_j)$$
 As we can see, the previous equation is much easier to numerically compute. However, as $m^{(t)}$ becomes increasingly smaller the estimator approximation becomes less accurate.
 We can also use Conditional Maximization steps in the M step. This would simplify the estimation of $a$ and $b$ in the $Q$ function more easily than the $Q$ function using the EM algorithm.
 
