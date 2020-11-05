@@ -332,9 +332,9 @@ I.error <- function(N, b1, b2, theta.old){
   return(matrix(data = output, nrow = 2, byrow = TRUE))
 }
 
-newSE = sqrt((-1)*solve(d2l(N,b1,b2,output.new$root)))
+newSE = sqrt(solve(I.error(N,b1,b2,output.new$root))/length(data.oil$spills))
 print(newSE)
-fishSE = sqrt(solve(I.error(N,b1,b2,output.fish$root)))
+fishSE = sqrt(solve(I.error(N,b1,b2,output.fish$root))/length(data.oil$spills))
 print(fishSE)
 ```
 
@@ -370,16 +370,16 @@ I.error <- function(N, b1, b2, theta.old){
 optim.output <- optim(par = c(1,1),fn = l,gr = output,dataset = data.oil,method = "BFGS",hessian = T)
 print(optim.output)
 #standard error from optim function
-optim.error <- sqrt(solve(optim.output$hessian))
+optim.error <- sqrt(solve(optim.output$hessian)/length(data.oil$spills))
 print(optim.error)
 ```
-Based on the output from the three methods, i would conclude that utilizing the "optim" function would be the easiest and more accurate way to implement MLE. It requires less coding (which equals less error) and produces a reasonable standard error. I would put it just in front of Newton's method because while the "optim" method is easier, the Newton's method is able to produce a comparable standard error with fewer iterations. I would put the Fisher Information approach last because it is computationally intensive with calculating the expectation and having to calculate the first and second derivative of the log likelihood. Moreover, it produced the worst standard error and required more iterations to find the MLE within the tolerance.
+Based on the output from the three methods, I would conclude that utilizing the "optim" function would be the easiest and most accurate way to implement MLE. It requires less coding (which equals less error) and produces a better standard error than the other two methods. While the optim function more iterations than my function for Newton's method, it does produce a better standard error.
 
 \newpage
 
 # Question 3
 
-##Part a
+## Part a
 based on the problem, we know we are given an observed data set $X = (X_1, X_2, ...,X_n)$ where $X_i \sim \alpha N(\mu_1 , \sigma_1^2) + (1-\alpha)N(\mu_2, \sigma_2^2)$. with this, and knowing we have a two-component mixture model, we can derive the EM algorithm to find $\hat{\theta}$ where $\theta = (\alpha, \mu_1,\mu_2,\sigma_1,\sigma_2)$. For the $Q$ function we have:
 $$Q(\theta | \hat{\theta}) = E[log(L(\theta | X))]$$
 $$Q(\theta | \hat{\theta}) = \Sigma_{i = 1}^{n} log(\alpha N(X_i, \mu_1, \sigma_1) + (1-\alpha)N(X_i,\mu_2,\sigma_2))$$
@@ -387,7 +387,7 @@ From here, we can say that the Maximum Likelihood extimate for the parameters $\
 $$\hat{\mu_j} = \frac{\Sigma_{i}X_i P(\theta_j|X_i)}{\Sigma_{i}P(\theta_j | X_i)}$$
 $$\hat{\sigma_j} = \frac{\Sigma_{i}(X_i-\mu_j)^2 P(\theta_j|X_i)}{\Sigma_{i}P(\theta_j | X_i)}$$
 
-##Part b
+## Part b
 ```{r Galaxies}
 #call the galaxies dataset
 data(galaxies)
@@ -433,7 +433,8 @@ while(abs(Q[i]-Q[i-1])>=tol){
 theta <- list("alpha" = alpha, "mu1" = mu1, "mu2" = mu2, "sigma1" = sigma1,"sigma" = sigma2)
 print(theta)
 
-hist(x, prob = T, breaks = 20, xlab = "Velocities (km/sec)", main = "Mixture Model Based on Galaxies Dataset")
+hist(x, prob = T, breaks = 20, xlab = "Velocities (km/sec)",
+     main = "Mixture Model Based on Galaxies Dataset")
 lines(density(x), col = "red")
 xfit <- seq(8000,35000,200)
 EMEstimate <- (alpha * dnorm(xfit,mu1,sigma1)) + ((1-alpha) * dnorm(xfit,mu2,sigma2))
@@ -442,7 +443,8 @@ legend('topright', col = c("red","green"), lwd = 2, legend = c("Density of Galax
 
 ```
 
-Because there are multiple local maxima in the equation, we cannot use this method for the EM algorithm for this distribution.
+While it is difficult to see because of the spread of the data, we cannot use this particular implementation of the EM algorithm. As we can see from the histogram, there are two main data peaks close together. Because the data peaks are so close together the EM estimate merges the peaks together.
+Because there could be multiple local maxima from the EM estimate, we cannot use this method for the EM algorithm for this distribution.
 
 \newpage
 
