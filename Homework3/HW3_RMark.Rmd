@@ -1,0 +1,81 @@
+---
+title: "HW3"
+author: "Hannah Zmuda"
+date: "11/18/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r library,include=FALSE}
+```
+
+## Question 1
+### Problem
+Use Monte Carlo simulation to investigate whether the empirical Type I error rate of the t-test is approximately equal to the nominal significance level $\alpha$, when the sampled population is non-normal. The t-test is robust to mild departures from normality. Discuss the simulation results for the cases where the sampled population is (i) $\chi^2$(1), (ii) Uniform(0,2), and (iii) Exponential(rate=1). In each case, test H0 : $\mu$ = $\mu_0$ vs H0 : $\mu$ $\ne$ $\mu_0$ , where $\mu_0$ is the mean of $\chi^2$(1), Uniform(0,2), and Exponential(1), respectively.
+
+### Solution
+```{r Q1}
+#Part a: looking at a type I error
+#all follow a similar algorithm as shown on page 193 in SCRR
+n <- 100 #number of replicates
+a <- 0.05 #significance level alpha
+muA <- mean(rchisq(n, df = 1)) #mu0 in part a
+muB <- mean(runif(n, 0, 2)) #mu0 in part b
+muC <- mean(rexp(n, rate = 1)) #mu0 in part c
+#become alternatives in the estimate power of a test (b).
+
+m <- 1000 #number of replicates
+pA <- numeric(m)
+pB <- numeric(m)
+pC <- numeric(m)
+
+for(i in 1:m){
+  xA <- rchisq(n, df = 1) #sample dist part a
+  xB <- runif(n, 0, 2) #sample dist part b
+  xC <- rexp(n, rate = 1) #sample dist part c
+  
+  ttestA <- t.test(xA, alternative = "two.sided",mu = muA)
+  ttestB <- t.test(xB, alternative = "two.sided",mu = muB)
+  ttestC <- t.test(xC, alternative = "two.sided",mu = muC)
+  
+  pA[i] <- ttestA$p.value
+  pB[i] <- ttestB$p.value
+  pC[i] <- ttestC$p.value
+}
+
+pHatA <- mean(pA < a)
+pHatB <- mean(pB < a)
+pHatC <- mean(pC < a)
+
+seHatA <- sqrt(pHatA * (1- pHatA)/m)
+seHatB <- sqrt(pHatB * (1- pHatB)/m)
+seHatC <- sqrt(pHatC * (1- pHatC)/m)
+
+cat("The means are: ", c(pHatA, pHatB, pHatC))
+cat("The standard errors are: ", c(seHatA, seHatB, seHatC))
+
+#Part b: Estimating power of a test and outputting empirical power curves of the t-test from the three previous situations
+
+
+
+
+```
+
+
+## Question 2
+
+
+
+## Question 3
+
+
+
+## Question 4
+
+
+
+## Question 5
+
