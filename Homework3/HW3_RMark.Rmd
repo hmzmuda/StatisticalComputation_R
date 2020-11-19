@@ -98,8 +98,16 @@ for(j in 1:MC){
   powNorm[j] <- powerTest$power
   
 }
+seA <- sqrt(powA * (1- powA)/MC)
+seB <- sqrt(powB * (1- powB)/MC)
+seC <- sqrt(powC * (1- powC)/MC)
+seN <- sqrt(powNorm * (1- powNorm)/MC)
 
-plot(mu1,powNorm)
+plot(mu1,powNorm,type = "l", main = "Empirical Power test",ylab = "Power",xlab = "Mean",col = "red")
+lines(mu1,powA,col = "green")
+lines(mu1,powB,col = "blue")
+lines(mu1,powC,col = "yellow")
+legend(x = 1.5, y = 0.6, legend = c("Normal", "Chi Square", "Uniform", "Exponential"), col = c("red","green","blue","yellow"), lty = 1)
 
 ```
 
