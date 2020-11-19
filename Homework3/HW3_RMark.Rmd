@@ -47,30 +47,52 @@ for(i in 1:m){
   pC[i] <- ttestC$p.value
 }
 
-pHatA <- mean(pA < a)
-pHatB <- mean(pB < a)
-pHatC <- mean(pC < a)
+pHatA <- mean(pA <= a)
+pHatB <- mean(pB <= a)
+pHatC <- mean(pC <= a)
 
 seHatA <- sqrt(pHatA * (1- pHatA)/m)
 seHatB <- sqrt(pHatB * (1- pHatB)/m)
 seHatC <- sqrt(pHatC * (1- pHatC)/m)
 #Means:
-cat("The means are: ", c(pHatA, pHatB, pHatC))
+cat("The means (of the p-values) are: ", c(pHatA, pHatB, pHatC), "\n")
 #SE:
-cat("The standard errors are: ", c(seHatA, seHatB, seHatC))
+cat("The standard errors (of the p-values) are: ", c(seHatA, seHatB, seHatC))
 
 #Part b: Estimating power of a test and outputting empirical power curves of the t-test from the three previous situations
-mu <- mean(rnorm(n))
+#initial data array
+mu1 <- c(seq(0,2,1/100))
+MC <- length(mu1)
+powA <- numeric(MC)
+powB <- numeric(MC)
+powC <- numeric(MC)
 
-powA <- power.t.test(m, delta = pHatA, sig.level = 0.05, power = NULL, alternative = "two.sided")
-powB <- power.t.test(m, delta = pHatB, sig.level = 0.05, power = NULL, alternative = "two.sided")
-powC <- power.t.test(m, delta = pHatC, sig.level = 0.05, power = NULL, alternative = "two.sided")
-
-for(j in 1:m){
-  #how do I get multiple means and powers when I am using the one pHat calculated in part a?
+#select theta_1 from the parameter subspace
+#muA, muB, and muC values
+#set for loop
+for(j in 1:MC){
+  
+  pvalA <- replicate(MC, expr = {
+    xA <- rchisq(n, df = 1) #sample dist part a
+    ttestA <- t.test(xA, alternative = "two.sided",mu = mu1[j])
+    powA[j] <- mean(ttestA <= a)
+  })
+  pvalB <- replicate(MC, expr = {
+    xB <- runif(n, 0, 2) #sample dist part b
+    ttestB <- t.test(xB, alternative = "two.sided",mu = mu1[j])
+    powB[j] <- mean(ttestB <= a)
+  })
+  pvalC <- replicate(MC, expr = {
+    xC <- rexp(n, rate = 1) #sample dist part c
+    ttestC <- t.test(xC, alternative = "two.sided",mu = mu1[j])
+    powC[j] <- mean(ttestC <= a)
+  })
+  powerTest <- power.t.test(n = MC, delta = mu1[j],sig.level = a,alternative = "two.sided")
+  powNorm[j] <- powerTest$power
   
 }
 
+plot(mu1,powerA)
 
 ```
 
