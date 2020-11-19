@@ -10,6 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r library,include=FALSE}
+library(ggplot2)
 ```
 
 ## Question 1
@@ -53,13 +54,22 @@ pHatC <- mean(pC < a)
 seHatA <- sqrt(pHatA * (1- pHatA)/m)
 seHatB <- sqrt(pHatB * (1- pHatB)/m)
 seHatC <- sqrt(pHatC * (1- pHatC)/m)
-
+#Means:
 cat("The means are: ", c(pHatA, pHatB, pHatC))
+#SE:
 cat("The standard errors are: ", c(seHatA, seHatB, seHatC))
 
 #Part b: Estimating power of a test and outputting empirical power curves of the t-test from the three previous situations
+mu <- mean(rnorm(n))
 
+powA <- power.t.test(m, delta = pHatA, sig.level = 0.05, power = NULL, alternative = "two.sided")
+powB <- power.t.test(m, delta = pHatB, sig.level = 0.05, power = NULL, alternative = "two.sided")
+powC <- power.t.test(m, delta = pHatC, sig.level = 0.05, power = NULL, alternative = "two.sided")
 
+for(j in 1:m){
+  #how do I get multiple means and powers when I am using the one pHat calculated in part a?
+  
+}
 
 
 ```
