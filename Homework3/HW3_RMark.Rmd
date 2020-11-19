@@ -66,6 +66,7 @@ MC <- length(mu1)
 powA <- numeric(MC)
 powB <- numeric(MC)
 powC <- numeric(MC)
+powNorm <- numeric(MC)
 
 #select theta_1 from the parameter subspace
 #muA, muB, and muC values
@@ -75,24 +76,30 @@ for(j in 1:MC){
   pvalA <- replicate(MC, expr = {
     xA <- rchisq(n, df = 1) #sample dist part a
     ttestA <- t.test(xA, alternative = "two.sided",mu = mu1[j])
-    powA[j] <- mean(ttestA <= a)
+    ttestA$p.value
   })
+  powA[j] <- mean(pvalA <= a)
+  
   pvalB <- replicate(MC, expr = {
     xB <- runif(n, 0, 2) #sample dist part b
     ttestB <- t.test(xB, alternative = "two.sided",mu = mu1[j])
-    powB[j] <- mean(ttestB <= a)
+    ttestB$p.value
   })
+  powB[j] <- mean(pvalB <= a)
+  
   pvalC <- replicate(MC, expr = {
     xC <- rexp(n, rate = 1) #sample dist part c
     ttestC <- t.test(xC, alternative = "two.sided",mu = mu1[j])
-    powC[j] <- mean(ttestC <= a)
+    ttestC$p.value
   })
+  powC[j] <- mean(pvalC <= a)
+  
   powerTest <- power.t.test(n = MC, delta = mu1[j],sig.level = a,alternative = "two.sided")
   powNorm[j] <- powerTest$power
   
 }
 
-plot(mu1,powerA)
+plot(mu1,powNorm)
 
 ```
 
