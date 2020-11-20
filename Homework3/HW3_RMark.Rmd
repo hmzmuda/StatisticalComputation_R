@@ -133,12 +133,17 @@ ztest <- replicate(m, expr = {
 })
 #alpha estimate
 aMC <- mean(ztest > 2.326)
-
+cat("Alpha estimate using MC:", aMC)
 ```
 ### Part b: Importance Sampling
 
 ```{r 2b}
-
+n <- 10
+m <- 100
+l <- 2
+g <- function(x) dpois(x,1.5*l)
+f <- function(x) 
+phi <- function(x) as.numeric(x > 2.326)
 ```
 
 ### Part c: Which is better?
