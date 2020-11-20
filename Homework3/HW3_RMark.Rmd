@@ -61,7 +61,7 @@ cat("The standard errors (of the p-values) are: ", c(seHatA, seHatB, seHatC))
 
 #Part b: Estimating power of a test and outputting empirical power curves of the t-test from the three previous situations
 #initial data array
-mu1 <- c(seq(0,2,1/100))
+mu1 <- c(seq(0,2,1/20))
 MC <- length(mu1)
 powA <- numeric(MC)
 powB <- numeric(MC)
@@ -72,62 +72,76 @@ powNorm <- numeric(MC)
 #muA, muB, and muC values
 #set for loop
 for(j in 1:MC){
-  
+  #Chi Squared Distribution
   pvalA <- replicate(MC, expr = {
     xA <- rchisq(n, df = 1) #sample dist part a
     ttestA <- t.test(xA, alternative = "two.sided",mu = mu1[j])
     ttestA$p.value
   })
   powA[j] <- mean(pvalA <= a)
-  
+  #Uniform Distribution
   pvalB <- replicate(MC, expr = {
     xB <- runif(n, 0, 2) #sample dist part b
     ttestB <- t.test(xB, alternative = "two.sided",mu = mu1[j])
     ttestB$p.value
   })
   powB[j] <- mean(pvalB <= a)
-  
+  #Exponential Distribution
   pvalC <- replicate(MC, expr = {
     xC <- rexp(n, rate = 1) #sample dist part c
     ttestC <- t.test(xC, alternative = "two.sided",mu = mu1[j])
     ttestC$p.value
   })
   powC[j] <- mean(pvalC <= a)
-  
+  #Normal Distribution using power.t.test function
   powerTest <- power.t.test(n = MC, delta = mu1[j],sig.level = a,alternative = "two.sided")
   powNorm[j] <- powerTest$power
   
 }
-seA <- sqrt(powA * (1- powA)/MC)
-seB <- sqrt(powB * (1- powB)/MC)
-seC <- sqrt(powC * (1- powC)/MC)
-seN <- sqrt(powNorm * (1- powNorm)/MC)
-# 
-# plot(mu1,powNorm,type = "l", main = "Empirical Power test",ylab = "Power",xlab = "Mean",col = "red")
-# lines(mu1,powA,col = "green")
-# lines(mu1,powB,col = "blue")
-# lines(mu1,powC,col = "yellow")
-# legend(x = 1.5, y = 0.6, legend = c("Normal", "Chi Square", "Uniform", "Exponential"), col = c("red","green","blue","yellow"), lty = 1)
 
-dfA <- data.frame(mu1,powA,"Chi Squared")
-dfB <- data.frame(mu1,powB, "Uniform")
-dfC <- data.frame(mu1,powC, "Exponential")
-dfNorm <- data.frame(mu1,powNorm, "Normal")
-data <- rbind(dfA, dfB, dfC, dfNorm)
+#making of the data frame
+mean <- c(mu1,mu1,mu1,mu1)
+powerR <- c(powNorm, powA, powB, powC)
+distType <- c(replicate(MC, "Normal"),replicate(MC, "Chi Squared"),replicate(MC, "Uniform"),replicate(MC, "Exponential"))
 
-# ggplot(data = data, aes(x = mu1, y = powA), col = "red") +
-#   geom_point(data = dfA, aes(x = mu1, y = powA), col = "red") +
-#   geom_point(data = dfB, aes(x = mu1, y = powB), col = "blue") +
-#   geom_point(data = dfC, aes(x = mu1, y = powC), col = "yellow") +
-#   geom_point(data = dfNorm, aes(x = mu1, y = powNorm), col = "green") +
-#   labs(x = 'Mean', y = 'Power', title = 'Empirical Power Test')
-#   
+data <- data.frame(mean, powerR,distType)
+
+ggplot(data = data, aes(x = mean, y = powerR, color = distType)) +
+  geom_point() +
+  labs(x = 'Mean', y = 'Power', title = 'Empirical Power Test') +
+  geom_errorbar(data = data, mapping = aes(x = mean, ymin = powerR - 2*(sqrt(powerR * (1- powerR)/MC)), ymax = powerR + 2*(sqrt(powerR * (1- powerR)/MC))))
 
 ```
 
 
 ## Question 2
 
+### Part a: MCEM
+Notes for code:
+- Use a Poisson Distribution
+- Reject the Null Hypothesis at $\alpha = 0.01$ if $Z > 2.326$
+- $\bar{X} = \Sigma_{i = 1}^{n} \frac{X_i}{n}$ aka the average
+```{r 2a}
+#part a estimate alpha using MCEM
+n <- 10 # distribution size
+m <- 100 #Monte Carlo sample size
+l <- 2 #lambda is equal to 2
+#z test with Monte Carlo
+ztest <- replicate(m, expr = {
+  x <- rpois(n, l) #samples
+  ztest <- (mean(x)-2)/(sd(x)/sqrt(n))
+})
+#alpha estimate
+aMC <- mean(ztest > 2.326)
+
+```
+### Part b: Importance Sampling
+
+```{r 2b}
+
+```
+
+### Part c: Which is better?
 
 
 ## Question 3
