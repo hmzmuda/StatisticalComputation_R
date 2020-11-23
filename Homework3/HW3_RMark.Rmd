@@ -138,12 +138,21 @@ cat("Alpha estimate using MC:", aMC)
 ### Part b: Importance Sampling
 
 ```{r 2b}
-n <- 10
-m <- 100
+n <- 100
+m <- 1000
 l <- 2
-g <- function(x) dpois(x,1.5*l)
-f <- function(x) 
-phi <- function(x) as.numeric(x > 2.326)
+g <- function(x) (exp(-1.5*l)*((1.5*l)^-x))/factorial(x)
+f <- function(x) (exp(-l)*(l^-x))/factorial(x)
+phi <- function(x) ((mean(x)-2)/(sd(x)/sqrt(n)) > 2.326)
+weight <- function(x) {phi(x) * f(x) / g(x)}
+out <- numeric(m)
+
+for(i in 1:m){
+  x <- rpois(n,l)
+  out <- weight(x)
+}
+
+
 ```
 
 ### Part c: Which is better?
