@@ -113,17 +113,20 @@ ggplot(data = data, aes(x = mean, y = powerR, color = distType)) +
 
 ```
 
-
+\newpage
 ## Question 2
 
-### Part a: MCEM
-Notes for code:
-- Use a Poisson Distribution
-- Reject the Null Hypothesis at $\alpha = 0.01$ if $Z > 2.326$
-- $\bar{X} = \Sigma_{i = 1}^{n} \frac{X_i}{n}$ aka the average
+### Part a and b: MC and IS
+
+For part (a) and (b), we are comparing Monte Carlo method and Importance Sampling (IS) to estimate $\alpha$ using the Z-test. In order to do Importance Sampling in part (b), we must first derive the weights: $f(X)/g(X)$. The problem statement tells us that the function $g(x) = Pois(1.5\lambda)$, which means the importance function, $f(x)$, is also based on the Poisson pdf. Therefore, 
+$$f(x) = \frac{e^{\lambda}\lambda^x}{x!}$$
+and
+$$g(x) = \frac{e^{-1.5\lambda}1.5\lambda^x}{x!}$$
+
 ```{r 2a}
+set.seed(475)
 #part a estimate alpha using MCEM
-n <- 10 # distribution size
+n <- 100 # distribution size
 m <- 100 #Monte Carlo sample size
 l <- 2 #lambda is equal to 2
 #z test with Monte Carlo
@@ -133,38 +136,36 @@ ztest <- replicate(m, expr = {
 })
 #alpha estimate
 aMC <- mean(ztest > 2.326)
-cat("Alpha estimate using MC:", aMC)
-```
-### Part b: Importance Sampling
+cat("Alpha estimate using MC:", aMC, "\n")
 
-```{r 2b}
-n <- 100
-m <- 1000
-l <- 2
-g <- function(x) (exp(-1.5*l)*((1.5*l)^-x))/factorial(x)
-f <- function(x) (exp(-l)*(l^-x))/factorial(x)
-phi <- function(x) ((mean(x)-2)/(sd(x)/sqrt(n)) > 2.326)
-weight <- function(x) {phi(x) * f(x) / g(x)}
+#part b: estimate alpha using Importance Sampling
+g <- function(x) (exp(-1.5*l)*((1.5*l)^x))/factorial(x)
+f <- function(x) (exp(-l)*(l^x))/factorial(x)
+phi <- function(x) as.numeric((mean(x)-2)/(sd(x)/sqrt(n))  > 2.326)
+weight <- function(x) f(x) / g(x)
 out <- numeric(m)
 
-for(i in 1:m){
-  x <- rpois(n,l)
-  out <- weight(x)
-}
+out <- replicate(m, expr = {
+  x <- rpois(n, l) #samples
+  out <- phi(x)*weight(x)
+})
 
+isOut <- mean(out)
+cat("Alpha estimate using IS:", isOut,"\n")
 
 ```
 
 ### Part c: Which is better?
+Both outputs of the function are off from the expected 0.05 estimate of $\alpha$. I would argue that the Monte Carlo is easier to implement because the weights do not need to be derived. However, IS estimates the $\alpha$ value closer to the expected value, compared to using Monte Carlo by itself. 
 
-
+\newpage
 ## Question 3
 
 
-
+\newpage
 ## Question 4
 
 
-
+\newpage
 ## Question 5
 
