@@ -161,6 +161,73 @@ Both outputs of the function are off from the expected 0.05 estimate of $\alpha$
 \newpage
 ## Question 3
 
+```{r Q3}
+set.seed(475)
+#get data
+salmon <-read.table("salmon.dat", header = TRUE)
+#initalize values
+n <- length(salmon$recruits)
+theta.hat <- rep(0,2)
+y <- 1/salmon$recruits
+x <- 1/salmon$spawners
+B <- 10000
+slope.hat <- numeric(b)
+intercept.hat <- numeric(b)
+
+#get the linear model and coefficients and first set of residuals
+linear.model <- lm(y~x)
+#calculate coefficients (slope and intercept)
+beta.slope <- as.numeric(coef(linear.model)[2])
+beta.int <- as.numeric(coef(linear.model)[1])
+eps <- as.numeric(resid(linear.model))
+slope.hat[1] <- beta.slope
+intercept.hat[1] <- beta.int
+#Bootstrapping the residuals
+for(b in 1:B){
+  eps.new <- eps[sample(1:n,n,replace = TRUE)]
+  yB <- beta.slope*x + beta.int + eps.new
+  fit <- lm(yB ~ x)
+  beta.slope <- as.numeric(coef(fit)[2])
+  beta.int <- as.numeric(coef(fit)[1])
+  eps <- as.numeric(resid(fit))
+  slope.hat[b] <- beta.slope
+  intercept.hat[b] <- beta.int
+}
+#output
+hist(slope.hat,breaks = 40)
+hist(intercept.hat,breaks = 40)
+print("95% CI for the slope (beta1)")
+quantile(slope.hat,probs = c(0.05,0.95),na.rm=T)
+print("95% CI for the intercept (beta2)")
+quantile(intercept.hat,probs = c(0.05,0.95),na.rm=T)
+```
+
+```{r Bootstrap the cases}
+#Bootstrapping the Cases
+set.seed(475)
+#get data
+salmon <-read.table("salmon.dat", header = TRUE)
+x <- 1/(salmon$spawners)
+y <- 1/(salmon$recruits)
+n <- length(x)
+B <- 10000
+b1.new <- rep(0,B)
+b2.new <- rep(0,B)
+model <- lm(y~x)
+beta.one <- as.numeric(coef(model)[1])#intercept
+beta.two <- as.numeric(coef(model)[2])#slope
+for(b in 1:B){
+  j <- sample(1:n,n,replace = TRUE)
+  x.new <- x[j]
+  y.new <- y[j]
+  model.new = lm(y.new~x.new)
+  b1.new[b] <- as.numeric(coef(model.new)[1])
+  b2.new[b] <- as.numeric(coef(model.new)[2])
+}
+hist(b1.new,breaks = 40)
+hist(b2.new,breaks = 40)
+
+```
 
 \newpage
 ## Question 4
