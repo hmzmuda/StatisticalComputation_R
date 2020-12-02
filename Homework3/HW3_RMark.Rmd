@@ -248,19 +248,24 @@ set.seed(475)
 cancer <- read.table("cancersurvival.dat", header = TRUE) #1 is stomach cancer, 2 is breast cancer
 #initalize
 n <- length(cancer[,1])
+B <- 10000
 theta <- NULL
 thetas <- rep(0,B)
 theta.hat <- rep(0,n)
 psi <- rep(0,n)
-#Bootstrap!!
+
+#Original estimtaes
 model <- lm(cancer[,2]~cancer[,1])
 theta <- as.numeric(model$coefficients[2]/model$coefficients[1])
+
+#Bootstrap!!
 for(i in 1:B){
   cancer.new <- cancer[sample(1:n,n,replace = TRUE),]
   model.new <- lm(cancer.new[,2]~cancer.new[,1])
   thetas[i] <- as.numeric(model.new$coefficients[2]/model.new$coefficients[1])
 }
 ci.95 <- quantile(thetas,c(0.025,0.975),na.rm=T)
+
 #BCA
 for(j in 1:n){
   mod = lm(cancer[-j,2] ~ cancer[-j,1])
@@ -274,7 +279,6 @@ b <- qnorm(mean(thetas<theta),0,1)
 beta1 <- pnorm(b + (b+qnorm(.025,0,1))/(1-a*(b+qnorm(.025,0,1))))
 beta2 <- pnorm(b + (b+qnorm(.975,0,1))/(1-a*(b+qnorm(.975,0,1))))
 ci.95.bc = quantile(thetas,c(beta1,beta2),na.rm=T)
-
 #output
 theta #observed estimate theta
 ci.95 #95% ci from basic bootstrap
@@ -282,7 +286,31 @@ ci.95.bc #95% ci from BCA
 hist(thetas,breaks=40)
 
 #Bootstrap t
-
+#initialize data
+thetas.t <- rep(0,B)
+G <- rep(0,B)
+ci.95.t <- rep(0,2)
+#get original theta value from line 257, use to calculate covariance
+cov.t <- summary(model)$cov
+b.t <- (theta^2)*(cov.t[2,2]/(model$coef[2]^2) + 
+       cov.t[1,1]/(model$coef[1]^2) - 2*cov.t[1,2]/(prod(model$coef)))
+sigma.t <- sqrt(b.t)
+#Bootstrap loop
+for(d in 1:B){
+  cancer.new <- cancer[sample(1:n,n,replace = TRUE),]
+  model.new <- lm(cancer.new[,2]~cancer.new[,1])
+  thetas.t[d] <- as.numeric(model.new$coefficients[2]/model.new$coefficients[1])
+  covs.t <- summary(model)$cov
+  #equation based on delta method
+  bs.t <- (thetas.t[d]^2)*(covs.t[2,2]/(model.new$coef[2]^2) + 
+       covs.t[1,1]/(model.new$coef[1]^2) - 2*covs.t[1,2]/(prod(model.new$coef)))
+  sigmas.t <- sqrt(bs.t)
+  G[d] = (thetas[d]-theta)/sigmas.t
+}
+ci.95.t[1] = theta - sigma.t*quantile(G,.975,na.rm=T)
+ci.95.t[2] = theta - sigma.t*quantile(G,.025,na.rm=T)
+ci.95.t
+hist(thetas.t,breaks = 40)
 
 
 ```
