@@ -187,6 +187,10 @@ for(b in 1:B){
 hist(beta.hat,breaks = 25, main = "Beta from Boostrap with Residuals", xlab = "Beta Estimate")
 print("95% CI Beta estimate from Boostrap with Residuals")
 quantile(beta.hat,probs = c(0.025,0.975),na.rm=T)
+print("Standard error")
+inside <- sum(beta.hat - mean(beta.hat))
+inside.sq <- inside^2
+sqrt(inside.sq/(n-1))
 
 #part b: Jackknife after bootstrap
 se.beta <- rep(0,B)
@@ -194,7 +198,7 @@ for(b in 1:B){
   se.beta[b] <- sd(beta.hat[-b])
 }
 se.beta.bar <- mean(se.beta)
-se.beta.jack <- (B-1)/B*sum((se.beta-se.beta.bar)^2)
+se.beta.jack <- (B-1)/B*sum((se.beta-se.beta.bar)^2) *(-1)
 cat("Bias Corrected Estimate:", (B-1)*(se.beta.bar-sd(beta.hat)),"\n")
 cat("SE from Jackknife-after-bootstrap:", se.beta.jack)
 
@@ -223,6 +227,10 @@ hist(beta.new,breaks = 25, main = "Beta from Boostrap with Cases", xlab = "Beta 
 ci.95.case <- quantile(beta.new,probs = c(0.025,0.975))
 print("95% CI Beta estimate from Boostrap with Cases")
 ci.95.case
+print("Standard error")
+inside <- sum(beta.new - mean(beta.new))
+inside.sq <- inside^2
+sqrt(inside.sq/(n-1))
 
 #part b: Jackknife after bootstrap
 se.beta <- rep(0,B)
@@ -393,7 +401,7 @@ quantile(res.diff.mean,probs = c(0.025,0.975))
 obs.diff.mean
 
 ```
-Because the observed mean is outside of the 2.5% confidence interval, we can reject teh null hypothesis.
+Because the observed mean is outside of the 2.5% confidence interval, we can reject the null hypothesis.
 
 ### part c
 ```{r Cancer part c}
@@ -418,3 +426,9 @@ quantile(true.thetas, probs = c(0.025,0.975))
 \newpage
 ## Question 5
 
+```{r Q5 Bootstrap Fail}
+library(boot)
+set.seed (475)
+
+
+```
