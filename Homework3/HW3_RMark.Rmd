@@ -9,16 +9,13 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r library,include=FALSE}
-library(ggplot2)
-```
-
 ## Question 1
 ### Problem
 Use Monte Carlo simulation to investigate whether the empirical Type I error rate of the t-test is approximately equal to the nominal significance level $\alpha$, when the sampled population is non-normal. The t-test is robust to mild departures from normality. Discuss the simulation results for the cases where the sampled population is (i) $\chi^2$(1), (ii) Uniform(0,2), and (iii) Exponential(rate=1). In each case, test H0 : $\mu$ = $\mu_0$ vs H0 : $\mu$ $\ne$ $\mu_0$ , where $\mu_0$ is the mean of $\chi^2$(1), Uniform(0,2), and Exponential(1), respectively.
 
 ### Solution
 ```{r Q1}
+library(ggplot2)
 #Part a: looking at a type I error
 #all follow a similar algorithm as shown on page 193 in SCRR
 n <- 100 #number of replicates
@@ -94,7 +91,7 @@ for(j in 1:MC){
   })
   powC[j] <- mean(pvalC <= a)
   #Normal Distribution using power.t.test function
-  powerTest <- power.t.test(n = MC, delta = mu1[j],sig.level = a,alternative = "two.sided")
+  powerTest <- power.t.test(n = MC, delta = mu1[j]-1,sig.level = a,alternative = "two.sided")
   powNorm[j] <- powerTest$power
   
 }
@@ -126,7 +123,7 @@ $$g(x) = \frac{e^{-1.5\lambda}1.5\lambda^x}{x!}$$
 ```{r 2a}
 set.seed(475)
 #part a estimate alpha using MCEM
-n <- 100 # distribution size
+n <- 10 # distribution size
 m <- 100 #Monte Carlo sample size
 l <- 2 #lambda is equal to 2
 #z test with Monte Carlo
@@ -246,15 +243,15 @@ cat("SE from Jackknife-after-bootstrap:", se.beta.jack)
 set.seed(475)
 #get data
 cancer <- read.table("cancersurvival.dat", header = TRUE) #1 is stomach cancer, 2 is breast cancer
-#initalize
+#initialize
 n <- length(cancer[,1])
-B <- 10000
+B <- 100000
 theta <- NULL
 thetas <- rep(0,B)
 theta.hat <- rep(0,n)
 psi <- rep(0,n)
 
-#Original estimtaes
+#Original estimates
 model <- lm(cancer[,2]~cancer[,1])
 theta <- as.numeric(model$coefficients[2]/model$coefficients[1])
 
@@ -266,7 +263,7 @@ for(i in 1:B){
 }
 ci.95 <- quantile(thetas,c(0.025,0.975),na.rm=T)
 
-#BCA
+## BCA
 for(j in 1:n){
   mod = lm(cancer[-j,2] ~ cancer[-j,1])
   theta.hat[j] <- as.numeric(mod$coefficients[2]/mod$coefficients[1])
@@ -283,18 +280,20 @@ ci.95.bc = quantile(thetas,c(beta1,beta2),na.rm=T)
 theta #observed estimate theta
 ci.95 #95% ci from basic bootstrap
 ci.95.bc #95% ci from BCA
-hist(thetas,breaks=40)
+hist(thetas,breaks=25)
 
-#Bootstrap t
+## Bootstrap t
 #initialize data
 thetas.t <- rep(0,B)
 G <- rep(0,B)
 ci.95.t <- rep(0,2)
+
 #get original theta value from line 257, use to calculate covariance
 cov.t <- summary(model)$cov
 b.t <- (theta^2)*(cov.t[2,2]/(model$coef[2]^2) + 
        cov.t[1,1]/(model$coef[1]^2) - 2*cov.t[1,2]/(prod(model$coef)))
 sigma.t <- sqrt(b.t)
+
 #Bootstrap loop
 for(d in 1:B){
   cancer.new <- cancer[sample(1:n,n,replace = TRUE),]
@@ -307,10 +306,11 @@ for(d in 1:B){
   sigmas.t <- sqrt(bs.t)
   G[d] = (thetas[d]-theta)/sigmas.t
 }
-ci.95.t[1] = theta - sigma.t*quantile(G,.975,na.rm=T)
-ci.95.t[2] = theta - sigma.t*quantile(G,.025,na.rm=T)
+#outputs
+ci.95.t[1] = theta - sigma.t*quantile(G,.025,na.rm=T)
+ci.95.t[2] = theta - sigma.t*quantile(G,.975,na.rm=T)
 ci.95.t
-hist(thetas.t,breaks = 40)
+hist(thetas.t,breaks = 25)
 
 
 ```
