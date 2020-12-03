@@ -9,10 +9,7 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-<<<<<<< HEAD
-=======
-
->>>>>>> Q4
+Q4
 ## Question 1
 ### Problem
 Use Monte Carlo simulation to investigate whether the empirical Type I error rate of the t-test is approximately equal to the nominal significance level $\alpha$, when the sampled population is non-normal. The t-test is robust to mild departures from normality. Discuss the simulation results for the cases where the sampled population is (i) $\chi^2$(1), (ii) Uniform(0,2), and (iii) Exponential(rate=1). In each case, test H0 : $\mu$ = $\mu_0$ vs H0 : $\mu$ $\ne$ $\mu_0$ , where $\mu_0$ is the mean of $\chi^2$(1), Uniform(0,2), and Exponential(1), respectively.
@@ -243,104 +240,13 @@ cat("SE from Jackknife-after-bootstrap:", se.beta.jack)
 \newpage
 
 ## Question 4
-```{r Cancer}
-set.seed(475)
-#get data
-cancer <- read.table("cancersurvival.dat", header = TRUE) #1 is stomach cancer, 2 is breast cancer
-<<<<<<< HEAD
-#initialize
-n <- length(cancer[,1])
-B <- 100000
-=======
-cancer[,1] <- log10(cancer[,1])
-breast.cancer <- cancer[cancer[,2]==2,1]
-stomach.cancer <- cancer[cancer[,2]==1,1]
-#initialize
-n <- length(breast.cancer)
-B <- 10000
->>>>>>> Q4
-theta <- NULL
-thetas <- rep(0,B)
-theta.hat <- rep(0,n)
-psi <- rep(0,n)
 
-#Original estimates
-<<<<<<< HEAD
-model <- lm(cancer[,2]~cancer[,1])
-=======
-model <- lm(breast.cancer~stomach.cancer)
->>>>>>> Q4
-theta <- as.numeric(model$coefficients[2]/model$coefficients[1])
-
-#Bootstrap!!
-for(i in 1:B){
-  rand.sample <- sample(1:n,n,replace = TRUE)
-  cancer.new.s <- stomach.cancer[rand.sample]
-  cancer.new.b <- breast.cancer[rand.sample]
-  model.new <- lm(breast.cancer~stomach.cancer)
-  thetas[i] <- as.numeric(model.new$coefficients[2]/model.new$coefficients[1])
-}
-ci.95 <- quantile(thetas,c(0.025,0.975),na.rm=T)
-
-## BCA
-for(j in 1:n){
-  mod = lm(breast.cancer[-j]~stomach.cancer[-j])
-  theta.hat[j] <- as.numeric(mod$coefficients[2]/mod$coefficients[1])
-}
-for(k in 1:n){
-  psi[k] <- mean(theta.hat[-k])-theta.hat[k]
-}
-a <- ((1/6)*sum(psi^3))/((sum(psi^2))^(3/2))
-b <- qnorm(mean(thetas<theta),0,1)
-beta1 <- pnorm(b + (b+qnorm(.025,0,1))/(1-a*(b+qnorm(.025,0,1))))
-beta2 <- pnorm(b + (b+qnorm(.975,0,1))/(1-a*(b+qnorm(.975,0,1))))
-ci.95.bc = quantile(thetas,c(beta1,beta2),na.rm=T)
-#output
-theta #observed estimate theta
-ci.95 #95% ci from basic bootstrap
-ci.95.bc #95% ci from BCA
-hist(thetas,breaks=25)
-
-## Bootstrap t
-#initialize data
-thetas.t <- rep(0,B)
-G <- rep(0,B)
-ci.95.t <- rep(0,2)
-
-#get original theta value from line 257, use to calculate covariance
-cov.t <- summary(model)$cov
-b.t <- (theta^2)*(cov.t[2,2]/(model$coef[2]^2) + 
-       cov.t[1,1]/(model$coef[1]^2) - 2*cov.t[1,2]/(prod(model$coef)))
-sigma.t <- sqrt(b.t)
-
-#Bootstrap loop
-for(d in 1:B){
-  rand.sample <- sample(1:n,n,replace = TRUE)
-  cancer.new.s <- stomach.cancer[rand.sample]
-  cancer.new.b <- breast.cancer[rand.sample]
-  model.new <- lm(breast.cancer~stomach.cancer)
-  thetas.t[d] <- as.numeric(model.new$coefficients[2]/model.new$coefficients[1])
-  covs.t <- summary(model)$cov
-  #equation based on delta method
-  bs.t <- (thetas.t[d]^2)*(covs.t[2,2]/(model.new$coef[2]^2) + 
-       covs.t[1,1]/(model.new$coef[1]^2) - 2*covs.t[1,2]/(prod(model.new$coef)))
-  sigmas.t <- sqrt(bs.t)
-  G[d] = (thetas[d]-theta)/sigmas.t
-}
-#outputs
-ci.95.t[1] = theta - sigma.t*quantile(G,.025,na.rm=T)
-ci.95.t[2] = theta - sigma.t*quantile(G,.975,na.rm=T)
-ci.95.t
-hist(thetas.t,breaks = 25)
-
-
-```
 ### part a
 ```{r Cancer BCalpha}
 set.seed(475)
 #get data
 cancer <- read.table("cancersurvival.dat", header = TRUE) #1 is stomach cancer, 2 is breast cancer
-cancer[,1] <- log10(cancer[,1])
+cancer[,1] <- log(cancer[,1])
 breast.cancer <- cancer[cancer[,2]==2,1]
 stomach.cancer <- cancer[cancer[,2]==1,1]
 #initialize
@@ -413,7 +319,7 @@ ggplot(cancer.output,aes(x = theta, fill = disease, color = disease)) + geom_his
 library(ggplot2)
 #get data
 cancer <- read.table("cancersurvival.dat", header = TRUE) #1 is stomach cancer, 2 is breast cancer
-cancer[,1] <- log10(cancer[,1])
+cancer[,1] <- log(cancer[,1])
 breast.cancer <- cancer[cancer[,2]==2,1]
 stomach.cancer <- cancer[cancer[,2]==1,1]
 #initialize
@@ -422,10 +328,10 @@ B <- 100000
 #Bootstrap t
 #initialize data
 thetas.b <- rep(0,B)
-G.b <- rep(0,B)
+t.b <- rep(0,B)
 ci.95.t.b <- rep(0,2)
 thetas.s <- rep(0,B)
-G.s <- rep(0,B)
+t.s <- rep(0,B)
 ci.95.t.s <- rep(0,2)
 #get original theta value from line 257, use to calculate covariance
 theta.b <- mean(breast.cancer)
@@ -441,15 +347,15 @@ for(d in 1:B){
   thetas.s[d] <- mean(cancer.new.s)
   sigmas.b <- sd(cancer.new.b)/sqrt(length(breast.cancer))
   sigmas.s <- sd(cancer.new.s)/sqrt(length(stomach.cancer))
-  G.b[d] = (thetas.b[d]-theta.b)/sigmas.b
-  G.s[d] = (thetas.s[d]-theta.s)/sigmas.s
+  t.b[d] = (thetas.b[d]-theta.b)/sigmas.b #reference distribution
+  t.s[d] = (thetas.s[d]-theta.s)/sigmas.s #reference distribution
 }
-ci.95.t.b[1] = theta.b - sigma.b*quantile(G.b,.975,na.rm=T)
-ci.95.t.b[2] = theta.b - sigma.b*quantile(G.b,.025,na.rm=T)
+ci.95.t.b[1] = theta.b - sigma.b*quantile(t.b,.975,na.rm=T)
+ci.95.t.b[2] = theta.b - sigma.b*quantile(t.b,.025,na.rm=T)
 print("95% Confidence Interval for Breast Cancer")
 ci.95.t.b
-ci.95.t.s[1] = theta.s - sigma.s*quantile(G.s,.975,na.rm=T)
-ci.95.t.s[2] = theta.s - sigma.s*quantile(G.s,.025,na.rm=T)
+ci.95.t.s[1] = theta.s - sigma.s*quantile(t.s,.975,na.rm=T)
+ci.95.t.s[2] = theta.s - sigma.s*quantile(t.s,.025,na.rm=T)
 print("95% Confidence Interval for Stomach Cancer")
 ci.95.t.s
 
@@ -465,20 +371,46 @@ ggplot(cancer.output,aes(x = theta, fill = disease, color = disease)) + geom_his
 set.seed(475)
 #get data
 cancer <- read.table("cancersurvival.dat", header = TRUE) #1 is stomach cancer, 2 is breast cancer
-cancer[,1] <- log10(cancer[,1])
-breast.cancer <- cancer[cancer[,2]==2,1]
-stomach.cancer <- cancer[cancer[,2]==1,1]
+cancer[,1] <- log(cancer[,1])
 #initialize
-n <- length(breast.cancer)
-P <- 100 #Number of permutations
-theta.b <- NULL
-thetas.b <- rep(0,B)
-theta.hat.b <- rep(0,n)
-theta.s <- NULL
-thetas.s <- rep(0,B)
-theta.hat.s <- rep(0,n)
+P <- 1000 #Number of permutation
+theta.b <- mean(cancer[cancer$disease == 2,1])
+theta.s <- mean(cancer[cancer$disease == 1,1])
+res.diff.mean <- rep(0,P)
+#Loop for permutation test
+for(p in 1:P){
+  perm <- sample(nrow(cancer))
+  dat <- transform(cancer, disease = disease[perm])
+  thetas.b <- mean(dat[dat$disease == 2,"survivaltime"])
+  thetas.s <- mean(dat[dat$disease == 1,"survivaltime"])
+  res.diff.mean[p] <- thetas.s - thetas.b
+}
+obs.diff.mean <- theta.s-theta.b
+hist(res.diff.mean, breaks = 25, col = "gray", xlim = c(-2,2))
+abline(v = obs.diff.mean, col = "red")
 
-#Similar to previous problem in part a, but we do NOT replace.
+quantile(res.diff.mean,probs = c(0.025,0.975))
+obs.diff.mean
+
+```
+Because the observed mean is outside of the 2.5% confidence interval, we can reject teh null hypothesis.
+
+### part c
+```{r Cancer part c}
+library(boot)
+set.seed(475)
+#get data
+cancer <- read.table("cancersurvival.dat", header = TRUE) #1 is stomach cancer, 2 is breast cancer
+cancer <- cancer[cancer$disease == 2,]
+log.cancer <- log(cancer[,1])
+thetas.b <- replicate(B,expr = {
+  mean(log.cancer[sample(length(log.cancer),replace = TRUE)])
+})
+true.thetas <- replicate(B,expr = {
+  mean(cancer[sample(nrow(cancer),replace = TRUE),1])
+})
+quantile(exp(thetas.b), probs = c(0.025,0.975))
+quantile(true.thetas, probs = c(0.025,0.975))
 
 
 ```
