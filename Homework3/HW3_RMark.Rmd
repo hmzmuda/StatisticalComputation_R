@@ -1,7 +1,7 @@
 ---
 title: "HW3"
 author: "Hannah Zmuda"
-date: "11/18/2020"
+date: "12/04/2020"
 output: pdf_document
 ---
 
@@ -105,10 +105,12 @@ data <- data.frame(mean, powerR,distType)
 
 ggplot(data = data, aes(x = mean, y = powerR, color = distType)) +
   geom_point() +
-  labs(x = 'Mean', y = 'Power', title = 'Empirical Power Test') +
-  geom_errorbar(data = data, mapping = aes(x = mean, ymin = powerR - 2*(sqrt(powerR * (1- powerR)/MC)), ymax = powerR + 2*(sqrt(powerR * (1- powerR)/MC))))
+  labs(x = 'Mean', y = 'Power', title = 'Empirical Power Test') + 
+  geom_pointrange(data = data, mapping = aes(x = mean, ymin = powerR - 2*(sqrt(powerR * (1- powerR)/MC)), ymax = powerR + 2*(sqrt(powerR * (1- powerR)/MC))))
+
 
 ```
+Downside of the t-test for non-normal distributions is that it is not as accurate as it is for normal distributions. For the mean of the p-values, all are above the accepted p-value of 0.05 and have empirical power curves skewed away from the power curve of the normal distribution.
 
 \newpage
 ## Question 2
@@ -153,7 +155,7 @@ cat("Alpha estimate using IS:", isOut,"\n")
 ```
 
 ### Part c: Which is better?
-Both outputs of the function are off from the expected 0.05 estimate of $\alpha$. I would argue that the Monte Carlo is easier to implement because the weights do not need to be derived. However, IS estimates the $\alpha$ value closer to the expected value, compared to using Monte Carlo by itself. 
+Both outputs of the function are off from the expected 0.05 estimate of $\alpha$. I would argue that the Monte Carlo is **easier** to implement because the weights do not need to be derived. However, using the weights in the Importance Sampling corrects any bias we might see in the method using Monte Carlo and guarantees and unbiased estimator. Becuase of this, I would choose to use Importance Sampling over Monte Carlo. 
 
 \newpage
 ## Question 3
@@ -184,6 +186,7 @@ for(b in 1:B){
 }
 #output
 hist(beta.hat,breaks = 25, main = "Beta from Boostrap with Residuals", xlab = "Beta Estimate")
+abline(v = mean(beta.hat), col = "red")
 print("BOOTSTRAP THE RESIDUALS")
 print("95% CI Beta estimate from Boostrap with Residuals")
 quantile(beta.hat,probs = c(0.025,0.975),na.rm=T)
@@ -210,7 +213,8 @@ for(b in 1:B){
 }
 se.beta.bar <- mean(se.beta)
 se.beta.jack <- sqrt(sum((se.beta-se.beta.bar)^2)/(n-1))
-cat("Bias Corrected Estimate:", (se.beta.bar-sd(beta.hat)),"\n")
+cat("Jackknife Bias Estimate:", (n-1)*(se.beta.bar-sd(beta.hat)),"\n")
+cat("Estimate of bias:", (n-1)*(se.beta.bar-sd(beta.hat)),"\n")
 cat("SE from Jackknife-after-bootstrap:", se.beta.jack)
 
 ```
@@ -235,6 +239,7 @@ for(b in 1:B){
   beta.new[b] <- (1-model.new$coef[2])/model.new$coef[1]
 }
 hist(beta.new,breaks = 25, main = "Beta from Boostrap with Cases", xlab = "Beta Estimate")
+abline(v = mean(beta.new), col = "red")
 ci.95.case <- quantile(beta.new,probs = c(0.025,0.975))
 print("95% CI Beta estimate from Boostrap with Cases")
 ci.95.case
@@ -266,9 +271,9 @@ cat("Bias Corrected Estimate:", (se.beta.bar-sd(beta.new)),"\n")
 cat("SE from Jackknife-after-bootstrap:", se.beta.jack)
 
 ```
+Comparing the two histograms, although they have the mean of the distribution in similar locations, the histogram from the residuals has a flattened top and is slightly more spread on the top compared to the histogram from bootstrapping the cases. Moreover, the Bias Corrected estimate from the Bootstrap the residuals is lower than the actual mean value and the Bias corrected estimate from bootstrap the cases (which is closer to the mean of the histogram).
 
 \newpage
-
 ## Question 4
 
 ### part a
@@ -416,18 +421,17 @@ for(p in 1:P){
   res.diff.mean[p] <- thetas.s - thetas.b
 }
 obs.diff.mean <- theta.s-theta.b
-hist(res.diff.mean, breaks = 25, col = "gray", xlim = c(-2,2))
+hist(res.diff.mean, breaks = 25, col = "gray", xlim = c(-2,2), main = "Permutation Test for Difference of the Means")
 abline(v = obs.diff.mean, col = "red")
 
 quantile(res.diff.mean,probs = c(0.025,0.975))
 obs.diff.mean
 
 ```
-Because the observed mean is outside of the 2.5% confidence interval, we can reject the null hypothesis.
+Because the observed mean is outside of the 2.5% confidence interval, we can reject the null hypothesis that there is no difference in the mean survival time for breast and stomach cancer.
 
 ### part c
 ```{r Cancer part c}
-library(boot)
 set.seed(475)
 #get data
 cancer <- read.table("cancersurvival.dat", header = TRUE) #1 is stomach cancer, 2 is breast cancer
@@ -444,6 +448,7 @@ quantile(true.thetas, probs = c(0.025,0.975))
 
 
 ```
+The first confidence interval calculated by returning the log scale data to the original scale while the second confidence interval is calculated from the original dataset. The first quantile is significantly skewed away from the second quantile set. Although this is only looking at breast cancer mean survival times, exponentiation after the bootstrap and confidence interval construction skews the data. Moreover, unlike in part (a), we are not utilizing the variance in this example which is why the first quantile from this problem is overall lower in confidence interval values compared to those calculated in part (a) and in teh confidence interval calculated using the original data.
 
 \newpage
 ## Question 5
@@ -472,23 +477,53 @@ Hence the distribution of $T^*$ is not close to the distribution of $T$, and beh
 library(boot)
 set.seed (475)
 theta = 1
-n = 10#sample length
-itr = 100 #Bootstrap iteration length
-x <- runif(n,0,theta) #uniform distribution,observed data
-theta.hat <- rep(0,itr)
-theta.hat.star <- rep(0,itr)
-T.f <- function(x){-n*(x-theta)}
-T.star.f <- function(x,x.s){-n*(x.s-x)}
-
+n = 500#sample length
+itr = 10000 #Bootstrap iteration length
+x <- runif(n, min = 0, max = theta) #uniform distribution,observed data
+theta.hat <- -n*(max(x)-theta)
+theta.hat.star <- numeric(itr)
 
 for(i in 1:itr){
-  x.star = x[sample(1:n,n,replace = TRUE)]#x.star is pseudo bootstrap data
-  theta.hat[itr] <- T.f(x)
-  theta.hat.star[itr] <- T.star.f(x,x.star)
+  samp = sample(1:n,n,replace = TRUE)
+  x.star = x[samp]#x.star is pseudo bootstrap data
+  theta.hat.star[i] <- -n*(max(x.star)-max(x))
 }
 
-hist(theta.hat)
-hist(theta.hat.star)
+hist(theta.hat.star, main = "Histogram Using T* Statistic")
+abline(v = theta.hat, col = "red")
 
+#Testing failure
+theta = c(2,4,10,20)
+x.2 <- runif(n, min = 0, max = 2)
+x.4 <- runif(n, min = 0, max = 4)
+x.10 <- runif(n, min = 0, max = 10)
+x.20 <- runif(n, min = 0, max = 20)
+ths.2<- numeric(itr)
+ths.4<- numeric(itr)
+ths.10<- numeric(itr)
+ths.20<- numeric(itr)
+for(i in 1:itr){
+  samp = sample(1:n,n,replace = TRUE)
+  x.star.2 = x.2[samp]#x.star is pseudo bootstrap data
+  x.star.4 = x.4[samp]
+  x.star.10 = x.10[samp]
+  x.star.20 = x.20[samp]
+  ths.2[i] <- -n*(max(x.star.2)-max(x.2))
+  ths.4[i] <- -n*(max(x.star.4)-max(x.4))
+  ths.10[i] <- -n*(max(x.star.10)-max(x.10))
+  ths.20[i] <- -n*(max(x.star.20)-max(x.20))
+  
+}
+
+old.par <- par(mfrow = c(2,2))
+hist(ths.2, main = "Histogram Using Theta = 2")
+hist(ths.4, main = "Histogram Using Theta = 4")
+hist(ths.10, main = "Histogram Using Theta = 10")
+hist(ths.20, main = "Histogram Using Theta = 20")
+par(old.par)
 
 ```
+As we can see from the above histogram, the $T^*$ statistic has a **point mass at zero** even when we make theta very large (shown above). Because of this, the bootstrap fails for the $T^*$ statistic.
+
+### part iv.
+Yes, because m-out-n bootstrap uses the likelihood as the bootstrap statistic which we showed in part i that it depends on $\theta$.
