@@ -190,31 +190,21 @@ abline(v = mean(beta.hat), col = "red")
 print("BOOTSTRAP THE RESIDUALS")
 print("95% CI Beta estimate from Boostrap with Residuals")
 quantile(beta.hat,probs = c(0.025,0.975),na.rm=T)
-print("Standard error")
-inside <- sum(beta.hat - mean(beta.hat))
-inside.sq <- inside^2
-sqrt(inside.sq/(n-1))
-print("Estimates Bias")
-bias = mean(beta.hat)-beta
-bias
-print("Bias corrected estimate")
-cor.beta <- beta-bias
-cor.beta
-print("Standard Error for corrected estimator")
-diff <- beta.hat - bias
-inside <- sum(diff - mean(diff))
-inside.sq <- inside^2
-sqrt(inside.sq/(n-1))
+cat("Standard Error for Bootstrap:", sd(beta.hat)/n,"\n")
 
 #part b: Jackknife after bootstrap
 se.beta <- rep(0,B)
+beta.jack <- rep(0,B)
 for(b in 1:B){
-  se.beta[b] <- sd(beta.hat[-b])
+  j <- sample(1:n,n,replace = TRUE)
+  model.new <- lm(y[-j]~x[-j])
+  beta.jack[b] <- (1-model.new$coef[2])/model.new$coef[1]
+  se.beta[b] <- sd(beta.jack[b])
 }
 se.beta.bar <- mean(se.beta)
-se.beta.jack <- sqrt(sum((se.beta-se.beta.bar)^2)/(n-1))
-cat("Jackknife Bias Estimate:", (n-1)*(se.beta.bar-sd(beta.hat)),"\n")
-cat("Estimate of bias:", (n-1)*(se.beta.bar-sd(beta.hat)),"\n")
+beta.jack.bar <- mean(beta.jack)
+se.beta.jack <- sqrt(((n-1)/n)*sum(beta.jack - beta.jack.bar)^2)
+cat("Bias Corrected Estimate:", n*beta - (n-1)*beta.jack.bar,"\n")
 cat("SE from Jackknife-after-bootstrap:", se.beta.jack)
 
 ```
@@ -229,6 +219,7 @@ y <- 1/(salmon$recruits)
 n <- length(x)
 B <- 10000
 beta.new <- rep(0,B)
+beta.jack <- rep(0,B)
 model.new <- lm(y ~ x)
 beta.true.c <- as.numeric((1-model.new$coef[2])/model.new$coef[1])
 for(b in 1:B){
@@ -243,31 +234,21 @@ abline(v = mean(beta.new), col = "red")
 ci.95.case <- quantile(beta.new,probs = c(0.025,0.975))
 print("95% CI Beta estimate from Boostrap with Cases")
 ci.95.case
-print("Standard error")
-inside <- sum(beta.new - mean(beta.new))
-inside.sq <- inside^2
-sqrt(inside.sq/(n-1))
-print("Estimates Bias")
-bias = mean(beta.new)-beta.true.c
-bias
-print("Bias corrected estimate")
-cor.beta <- beta.true.c-bias
-cor.beta
-print("Standard Error for corrected estimator")
-diff <- beta.new - bias
-inside <- sum(diff - mean(diff))
-inside.sq <- inside^2
-sqrt(inside.sq/(n-1))
+cat("Standard Error for Bootstrap:", sd(beta.hat)/n,"\n")
+
 
 #part b: Jackknife after bootstrap
 se.beta <- rep(0,B)
 m.beta <- rep(0,B)
 for(b in 1:B){
-  se.beta[b] <- sd(beta.new[-b])
+  j <- sample(1:n,n,replace = TRUE)
+  model.new <- lm(y[-j]~x[-j])
+  beta.jack[b] <- (1-model.new$coef[2])/model.new$coef[1]
 }
-se.beta.bar <- mean(se.beta)
-se.beta.jack <- sqrt(sum((se.beta-se.beta.bar)^2)/(n-1))
-cat("Bias Corrected Estimate:", (se.beta.bar-sd(beta.new)),"\n")
+
+beta.jack.bar <- mean(beta.jack)
+se.beta.jack <- sqrt(((n-1)/n)*sum(beta.jack - beta.jack.bar)^2)
+cat("Bias Corrected Estimate:", n*beta.true.c - (n-1)*beta.jack.bar,"\n")
 cat("SE from Jackknife-after-bootstrap:", se.beta.jack)
 
 ```
@@ -474,7 +455,6 @@ Hence the distribution of $T^*$ is not close to the distribution of $T$, and beh
 
 ### part iii
 ```{r Q5 Bootstrap Fail}
-library(boot)
 set.seed (475)
 theta = 1
 n = 500#sample length
