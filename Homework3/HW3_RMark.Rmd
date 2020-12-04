@@ -162,7 +162,7 @@ Both outputs of the function are off from the expected 0.05 estimate of $\alpha$
 set.seed(475)
 #get data
 salmon <-read.table("salmon.dat", header = TRUE)
-#initalize values
+#initialize values
 n <- length(salmon$recruits)
 y <- 1/salmon$recruits
 x <- 1/salmon$spawners
@@ -469,24 +469,26 @@ Hence the distribution of $T^*$ is not close to the distribution of $T$, and beh
 
 ### part iii
 ```{r Q5 Bootstrap Fail}
+library(boot)
 set.seed (475)
 theta = 1
-n = 500 #sample length
-itr = 10000 #Bootstrap iteration length
-data <- runif(n,0,theta) #uniform distribution
-T.boot <- rep(0,itr)
-T.star.boot <- rep(0,itr)
+n = 10#sample length
+itr = 100 #Bootstrap iteration length
+x <- runif(n,0,theta) #uniform distribution,observed data
+theta.hat <- rep(0,itr)
+theta.hat.star <- rep(0,itr)
 T.f <- function(x){-n*(x-theta)}
-T.star.f <- function(x,x.star){-n*(x.star-x)}
-#x.star is pseudo bootstrap data
+T.star.f <- function(x,x.s){-n*(x.s-x)}
+
 
 for(i in 1:itr){
-  x.star = sample(data,n,replace = TRUE)
-  x <- data
-  T.boot[itr] <- T.f(x)
-  T.star.boot <- T.star.f(x,x.star)
+  x.star = x[sample(1:n,n,replace = TRUE)]#x.star is pseudo bootstrap data
+  theta.hat[itr] <- T.f(x)
+  theta.hat.star[itr] <- T.star.f(x,x.star)
 }
 
+hist(theta.hat)
+hist(theta.hat.star)
 
 
 ```
