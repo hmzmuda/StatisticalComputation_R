@@ -172,23 +172,35 @@ beta.hat <- rep(0,B)
 #get the linear model and coefficients and first set of residuals
 linear.model <- lm(y~x)
 #calculate coefficients (slope and intercept)
-beta.true.r <- (1-linear.model$coef[2])/linear.model$coef[1]
+r <- linear.model$coefficients[1] + (linear.model$coefficients[2] * x)
 beta <- (1-linear.model$coef[2])/linear.model$coef[1]
-eps <- y - beta #residual error
+eps <- y - r#residual error
 
 #Bootstrapping the residuals
 for(b in 1:B){
   eps.new <- eps[sample(1:n,n,replace = TRUE)]
-  yB <- eps.new + beta
+  yB <- eps.new + r
   fit <- lm(yB ~ x)
   beta.hat[b] <- (1-fit$coef[2])/fit$coef[1]
 }
 #output
 hist(beta.hat,breaks = 25, main = "Beta from Boostrap with Residuals", xlab = "Beta Estimate")
+print("BOOTSTRAP THE RESIDUALS")
 print("95% CI Beta estimate from Boostrap with Residuals")
 quantile(beta.hat,probs = c(0.025,0.975),na.rm=T)
 print("Standard error")
 inside <- sum(beta.hat - mean(beta.hat))
+inside.sq <- inside^2
+sqrt(inside.sq/(n-1))
+print("Estimates Bias")
+bias = mean(beta.hat)-beta
+bias
+print("Bias corrected estimate")
+cor.beta <- beta-bias
+cor.beta
+print("Standard Error for corrected estimator")
+diff <- beta.hat - bias
+inside <- sum(diff - mean(diff))
 inside.sq <- inside^2
 sqrt(inside.sq/(n-1))
 
@@ -198,8 +210,8 @@ for(b in 1:B){
   se.beta[b] <- sd(beta.hat[-b])
 }
 se.beta.bar <- mean(se.beta)
-se.beta.jack <- (B-1)/B*sum((se.beta-se.beta.bar)^2) *(-1)
-cat("Bias Corrected Estimate:", (B-1)*(se.beta.bar-sd(beta.hat)),"\n")
+se.beta.jack <- sqrt(sum((se.beta-se.beta.bar)^2)/(n-1))
+cat("Bias Corrected Estimate:", (se.beta.bar-sd(beta.hat)),"\n")
 cat("SE from Jackknife-after-bootstrap:", se.beta.jack)
 
 ```
@@ -231,6 +243,17 @@ print("Standard error")
 inside <- sum(beta.new - mean(beta.new))
 inside.sq <- inside^2
 sqrt(inside.sq/(n-1))
+print("Estimates Bias")
+bias = mean(beta.new)-beta.true.c
+bias
+print("Bias corrected estimate")
+cor.beta <- beta.true.c-bias
+cor.beta
+print("Standard Error for corrected estimator")
+diff <- beta.new - bias
+inside <- sum(diff - mean(diff))
+inside.sq <- inside^2
+sqrt(inside.sq/(n-1))
 
 #part b: Jackknife after bootstrap
 se.beta <- rep(0,B)
@@ -239,8 +262,8 @@ for(b in 1:B){
   se.beta[b] <- sd(beta.new[-b])
 }
 se.beta.bar <- mean(se.beta)
-se.beta.jack <- (B-1)/B*sum((se.beta-se.beta.bar)^2)
-cat("Bias Corrected Estimate:", (B-1)*(se.beta.bar-sd(beta.new)),"\n")
+se.beta.jack <- sqrt(sum((se.beta-se.beta.bar)^2)/(n-1))
+cat("Bias Corrected Estimate:", (se.beta.bar-sd(beta.new)),"\n")
 cat("SE from Jackknife-after-bootstrap:", se.beta.jack)
 
 ```
@@ -425,6 +448,8 @@ quantile(true.thetas, probs = c(0.025,0.975))
 
 \newpage
 ## Question 5
+### part i
+
 
 ```{r Q5 Bootstrap Fail}
 library(boot)
