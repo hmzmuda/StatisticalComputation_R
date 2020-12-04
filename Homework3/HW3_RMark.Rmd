@@ -9,7 +9,6 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-Q4
 ## Question 1
 ### Problem
 Use Monte Carlo simulation to investigate whether the empirical Type I error rate of the t-test is approximately equal to the nominal significance level $\alpha$, when the sampled population is non-normal. The t-test is robust to mild departures from normality. Discuss the simulation results for the cases where the sampled population is (i) $\chi^2$(1), (ii) Uniform(0,2), and (iii) Exponential(rate=1). In each case, test H0 : $\mu$ = $\mu_0$ vs H0 : $\mu$ $\ne$ $\mu_0$ , where $\mu_0$ is the mean of $\chi^2$(1), Uniform(0,2), and Exponential(1), respectively.
@@ -449,11 +448,45 @@ quantile(true.thetas, probs = c(0.025,0.975))
 \newpage
 ## Question 5
 ### part i
+In order to compute the boot strap failure, we first need to find the Maximum Likelihood Estimator (MLE) of $\theta$. The likelihood is $L(\theta | X_1,...,X_n)$, which expands out to:
+$$L(\theta) = (\frac{1}{\theta})^n \Pi^{n}_{i = 1}f(X_n|\theta)$$
+$$L(\theta) = (\frac{1}{\theta})^n 1(X_1 > 0)1(X_n < \theta)$$
+From here we can see that $X_n$ is the MLE because if $\theta < X_n$ the likelihood function becomes $\frac{1}{\theta ^n}X_1$ which is exponential decreasing because of the $\theta^n$ term in the denominator. If $\theta \ge X_n$ the function becomes dictated by $X_n$. 
+This also supports the following:
+$$lim_{n -> \infty} P(-n(X_n - \theta) \le t)$$
+if we get the MLE, $X_n$ by itself:
+$$ = lim_{n -> \infty} P(X_n \le \theta - \frac{t}{n})$$
+and because all t values are greater than zero:
+$$ = 1 - (1 - \frac{t}{\theta}\frac{1}{n})^n$$
+$$ = 1 - e^{-t/\theta}$$
+### part ii
+Say we have $T = -n(X_n - \theta)$ and $T^* = -n(X_n^* - X_n)$, and we know all t values are greater than 0. Say we want to find $P(T^* = 0)$.
+$$P(T^* = 0) => 0 = -n(X_n^* - X_n)$$
+$$P(X_n^* = X_n)$$
+$$P(X_n^* = X_n) = 1-(1-\frac{1}{n})^n$$
+$$ = 1 - e^{-1} \approx 0.632$$
+Hence the distribution of $T^*$ is not close to the distribution of $T$, and behave badly for small $t$. 
 
-
+### part iii
 ```{r Q5 Bootstrap Fail}
-library(boot)
 set.seed (475)
+theta = 1
+n = 500 #sample length
+itr = 10000 #Bootstrap iteration length
+data <- runif(n,0,theta) #uniform distribution
+T.boot <- rep(0,itr)
+T.star.boot <- rep(0,itr)
+T.f <- function(x){-n*(x-theta)}
+T.star.f <- function(x,x.star){-n*(x.star-x)}
+#x.star is pseudo bootstrap data
+
+for(i in 1:itr){
+  x.star = sample(data,n,replace = TRUE)
+  x <- data
+  T.boot[itr] <- T.f(x)
+  T.star.boot <- T.star.f(x,x.star)
+}
+
 
 
 ```
