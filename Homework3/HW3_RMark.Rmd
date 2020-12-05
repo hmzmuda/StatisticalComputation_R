@@ -197,11 +197,10 @@ se.beta <- rep(0,B)
 beta.jack <- rep(0,B)
 for(b in 1:B){
   j <- sample(1:n,n,replace = TRUE)
-  model.new <- lm(y[-j]~x[-j])
+  yJ <- eps[-j] + r[-j]
+  model.new <- lm(yJ~x[-j])
   beta.jack[b] <- (1-model.new$coef[2])/model.new$coef[1]
-  se.beta[b] <- sd(beta.jack[b])
 }
-se.beta.bar <- mean(se.beta)
 beta.jack.bar <- mean(beta.jack)
 se.beta.jack <- sqrt(((n-1)/n)*sum(beta.jack - beta.jack.bar)^2)
 cat("Bias Corrected Estimate:", n*beta - (n-1)*beta.jack.bar,"\n")
@@ -506,4 +505,4 @@ par(old.par)
 As we can see from the above histogram, the $T^*$ statistic has a **point mass at zero** even when we make theta very large (shown above). Because of this, the bootstrap fails for the $T^*$ statistic.
 
 ### part iv.
-Yes, because m-out-n bootstrap uses the likelihood as the bootstrap statistic which we showed in part i that it depends on $\theta$.
+Yes, because m-out-n bootstrap uses the likelihood as the bootstrap statistic which we showed in part i that it depends on $\theta$. Moreover, m (the iteration value and indexing value in bootstrap cases) is strategically chosen so it converges to infinity, which is what we want the statistic of interest to do ($\hat{X_n}$).
