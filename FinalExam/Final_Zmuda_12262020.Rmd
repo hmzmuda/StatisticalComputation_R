@@ -43,8 +43,65 @@ $$p_T^{(t)} = \frac{2n_{TT}^{(t)} + n_{CT}^{(t)} + n_{IT}^{(t)}}{2(n_C + n_I + n
 
 ## Implementation in R
 
+```{r Problem 1}
+set.seed(475)
+
+#initialize variables and initial values
+x <- c(85, 196, 341) #observed data x = (nC, nI, nT)
+n <- rep(0,6) #complete data (y)
+#1:nCC,2:nCI,3:nCT,4:nII,5:nIT,6:nTT
+n.old <- rep(0,6,3)
+p <- rep(1/3,3) #starting probability values for each allele frequency 1:pC, 2:pI, 3:pT
+p.old <- p
+I <- 8 #Number of EM algorithm iterations
+
+#E step: Updated n(t) value
+moth.e <- function(x,p){
+  n.cc <- (x[1]*p[1]*p[1])/(p[1]*p[1] + 2*p[1]*p[2] + 2*p[1]*p[3])#1
+  n.ci <- (2*x[1]*p[1]*p[2])/(p[1]*p[1] + 2*p[1]*p[2] + 2*p[1]*p[3])#2
+  n.ct <- (2*x[1]*p[1]*p[3])/(p[1]*p[1] + 2*p[1]*p[2] + 2*p[1]*p[3])#3
+  n.ii <- (x[2]*p[2]*p[2])/(p[2]*p[2] + 2*p[2]*p[3])#4
+  n.it <- (2*x[2]*p[2]*p[3])/(p[2]*p[2] + 2*p[2]*p[3])#5
+  n.tt <- x[3]#6
+  return(c(n.cc,n.ci,n.ct,n.ii,n.it,n.tt))
+}
+#M step: Updated p(t+1) value 
+moth.m <- function(x,n){
+  p.c <- (2*n[1] + n[2] + n[3])/(2*sum(x))
+  p.i <- (2*n[4] + n[2] + n[5])/(2*sum(x))
+  p.t <- (2*n[6] + n[3] + n[5])/(2*sum(x))
+  return(c(p.c,p.i,p.t))
+}
+#Main Loop
+for(i in 1:I)
+{
+  n.old <- n
+  p.old <- p
+  n <- moth.e(x,p)
+  p <- moth.m(x,n)
+}
+p
+
+```
+
 \newpage
 # Problem 2
+```{r Problem 2}
+set.seed(475)
+#initialize values
+x <- c(85, 196, 341) #observed data x = (nC, nI, nT)
+n <- rep(0,6) #complete data (y)
+#1:nCC,2:nCI,3:nCT,4:nII,5:nIT,6:nTT
+p <- rep(1/3,3) #starting probability values for each allele frequency 1:pC, 2:pI, 3:pT
+it <- 8 #Number of 
+
+#part a: MH Algorithm to est alpha, beta, mu, lambda (sigma)
+m.h <- function(x,p,n){
+  
+}
+
+
+```
 
 \newpage
 # Problem 3
