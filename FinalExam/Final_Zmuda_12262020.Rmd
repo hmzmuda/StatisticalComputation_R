@@ -15,11 +15,16 @@ knitr::opts_chunk$set(echo = TRUE)
 To find the updated parameters (i.e. the maximized value) we fist need to find the Q-function (E step) then maximize the Q function by taking the derivative in regard to each of the parameters (M step).
 **E step:**
 Given the likelihood equation, we can work out the log likelihood to be:
-$$log[L(\theta | n_{k,i})] = \Sigma^{16}_{i = 0} z_{0}log(\alpha 1_{i = 0}) + (t_i)[log(\alpha 1_{i = 0}) + log(\beta \mu^i e^{-\mu}) + log((1-\alpha-\beta)\lambda^ie^{-\lambda})] + (p_i)[log(\alpha 1_{i = 0}) + log(\beta \mu^i e^{-\mu}) + log((1-\alpha-\beta)\lambda^ie^{-\lambda})] - log(i!)$$
+$$log[L(\theta | n_{k,i})] = \Sigma^{16}_{i = 0} z_{0}log(\alpha 1_{i = 0}) + $$
+$$(t_i)[log(\alpha 1_{i = 0}) + log(\beta \mu^i e^{-\mu}) + log((1-\alpha-\beta)\lambda^ie^{-\lambda})] + $$
+$$(p_i)[log(\alpha 1_{i = 0}) + log(\beta \mu^i e^{-\mu}) + log((1-\alpha-\beta)\lambda^ie^{-\lambda})] - log(i!)$$
 where $y$ is the complete data set and $z_0,t_i, p_i$ represent three different groups. These are further broken down into the zero, typical, and promiscuous groups.
 To find your Q-function, take the expectation of the log likelihood function:
 
-$$Q(\theta | \theta^{(t)}) = \Sigma^{16}_{i = 0}[ \frac{n_0z_{0}log(\alpha 1_{i = 0})}{N} + \frac{n_i(t_i)[log(\beta \mu^i e^{-\mu}) + log((1-\alpha-\beta)\lambda^ie^{-\lambda})]}{N} + \frac{n_i(p_i)[log(\beta \mu^i e^{-\mu}) + log((1-\alpha-\beta)\lambda^ie^{-\lambda})]}{N} - log(i!)]$$
+$$Q(\theta | \theta^{(t)}) = \Sigma^{16}_{i = 0}[ \frac{n_0z_{0}log(\alpha 1_{i = 0})}{N} +$$
+$$
+\frac{n_i(t_i)[log(\beta \mu^i e^{-\mu}) + log((1-\alpha-\beta)\lambda^ie^{-\lambda})]}{N} +$$
+$$\frac{n_i(p_i)[log(\beta \mu^i e^{-\mu}) + log((1-\alpha-\beta)\lambda^ie^{-\lambda})]}{N} - log(i!)]$$
 **M step:**
 For the M step of the EM algorithm, we need to maximize the Q function in regard to each parameter then set it equal to zero.
 
@@ -29,6 +34,7 @@ $$\alpha^{(t+1)} = \frac{n_0z_0{\theta^t}}{N}$$
 $$\beta^{(t+1)} = \Sigma^{16}_{i=0} \frac{n_it_i(\theta^{(t)})}{N}$$
 $$\mu^{(t+1)} = \frac{\Sigma^{16}_{i=0} i n_i t_i(\theta^{(t)})}{\Sigma^{16}_{i = 0}n_it_i(\theta^{(t)})}$$
 $$\lambda^{(t+1)} = \frac{\Sigma^{16}_{i=0} i n_i p_i(\theta^{(t)})}{\Sigma^{16}_{i = 0}n_ip_i(\theta^{(t)})}$$
+### part b and c
 ```{r Problem 1}
 set.seed(475)
 #initialize variables
@@ -61,17 +67,62 @@ while(tol.cur > tol){
   param = new.param
   time = time + 1
 }
+param
+
+#hist(data$freq, breaks = 17)
+#vline(pois(data$freq))
 
 #standard error
 #Use log likelihood at theta.hat values (i.e. new parameter values)
 
 #pairwise correlation
 cor(x = param, y = param, use = "pairwise.complete.obs")
-
 ```
-
 \newpage
 # Problem 2
+## part a: Metropolish-Hastings Algorithm
+
+```{r Problem 2a}
+set.seed(575)
+#initalize variables
+data = data.frame(enc=0:16,
+               freq=c(379,299,222,145,109,95,73,59,45,30,24,12,4,2,0,1,1))
+N = sum(data$freq)
+reject <- 0
+alpha = 0.5
+beta = 0.8
+mu = 2
+lambda = 15
+param = c(alpha,beta,mu,lambda)
+U <- runif(N)
+#use a normal distribution as a starting distribution with mean 0 and sd 1
+start.dist <- function(x){
+  if(x<0){return(0)}
+  else{return((1/sqrt(2))*exp(0.5*(x)^2))}
+}
+#Our target distribution is a poisson distribution
+target.dist <- function(x,lambda){
+  if(x<0){return(0)}
+  else{return((lambda^x*exp(x))/factorial(x))}
+}
+
+x <- rnorm(1,0,1)
+
+for(i in 2:N){
+  xt <- x[i-1]
+  y <- rnorm(1,0,1) + xt
+  num <- target.dist(y,lambda)*start.dist(xt)
+  dem <- target.dist(xt, lambda)*start.dist(y)
+  
+  if(U[i] <= num/dem){x[i] <- y}
+  else{
+    x[i] <- xt
+    reject = reject + 1
+  }
+}
+
+
+```
 
 \newpage
 # Problem 3
