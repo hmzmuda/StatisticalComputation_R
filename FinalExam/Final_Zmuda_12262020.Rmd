@@ -21,10 +21,10 @@ $$(p_i)[log(\alpha 1_{i = 0}) + log(\beta \mu^i e^{-\mu}) + log((1-\alpha-\beta)
 where $y$ is the complete data set and $z_0,t_i, p_i$ represent three different groups. These are further broken down into the zero, typical, and promiscuous groups.
 To find your Q-function, take the expectation of the log likelihood function:
 
-$$Q(\theta | \theta^{(t)}) = \Sigma^{16}_{i = 0}[ \frac{n_0z_{0}log(\alpha 1_{i = 0})}{N} +$$
+$$Q(\theta | \theta^{(t)}) = \Sigma^{16}_{i = 0}[ \frac{n_0z_{0}(\theta^{(t)})log(\alpha 1_{i = 0})}{N} +$$
 $$
-\frac{n_i(t_i)[log(\beta \mu^i e^{-\mu}) + log((1-\alpha-\beta)\lambda^ie^{-\lambda})]}{N} +$$
-$$\frac{n_i(p_i)[log(\beta \mu^i e^{-\mu}) + log((1-\alpha-\beta)\lambda^ie^{-\lambda})]}{N} - log(i!)]$$
+\frac{n_i(t_i(\theta^{(t)}))[log(\beta \mu^i e^{-\mu}) + log((1-\alpha-\beta)\lambda^ie^{-\lambda})]}{N} +$$
+$$\frac{n_i(p_i(\theta^{(t)}))[log(\beta \mu^i e^{-\mu}) + log((1-\alpha-\beta)\lambda^ie^{-\lambda})]}{N} - log(i!)]$$
 **M step:**
 For the M step of the EM algorithm, we need to maximize the Q function in regard to each parameter then set it equal to zero.
 
@@ -41,6 +41,7 @@ set.seed(475)
 data = data.frame(enc=0:16,
                freq=c(379,299,222,145,109,95,73,59,45,30,24,12,4,2,0,1,1))
 N = sum(data$freq)
+y = rep(data$enc,data$freq)
 alpha = 0.5
 beta = 0.8
 mu = 2
@@ -69,8 +70,22 @@ while(tol.cur > tol){
 }
 param
 
-#hist(data$freq, breaks = 17)
-#vline(pois(data$freq))
+hist(rep(data$enc,data$freq),breaks=-0.5+c(0:17),freq=F,main = "Histogram of Risky Sexual Encounters",xlab = "Encounters")
+#hist(y,freq=F)
+z = 0:16
+prob = (beta*exp(-mu)*mu^z + (1-alpha-beta)*exp(-lambda)*lambda^z)/(factorial(z))
+prob[1] = prob[1]+alpha
+for(i in 1:length(z)){
+  lines(c(z[i]-0.1,z[i]-0.1),c(0,prob[i]),lwd=5,col=1)
+}
+
+pois.hat = mean(y)
+
+for(i in 1:length(z)){
+  lines(c(z[i]+0.1,z[i]+0.1),c(0,dpois(z[i],pois.hat)),lwd=5,col=2)
+}
+
+legend("topright",c("Poisson mixtures","Poisson"),lty=1,col=1:2)
 
 #standard error
 #Use log likelihood at theta.hat values (i.e. new parameter values)
@@ -80,47 +95,88 @@ cor(x = param, y = param, use = "pairwise.complete.obs")
 ```
 \newpage
 # Problem 2
-## part a: Metropolish-Hastings Algorithm
+## part a: Metropolis and M-H Algorithm
+We are seeking to estimate $\alpha, \beta, \mu, \lambda$ using the Metropolis Algorithm.
 
 ```{r Problem 2a}
 set.seed(575)
-#initalize variables
+#initialize variables
 data = data.frame(enc=0:16,
                freq=c(379,299,222,145,109,95,73,59,45,30,24,12,4,2,0,1,1))
 N = sum(data$freq)
+y = rep(data$enc,data$freq)
 reject <- 0
-alpha = 0.5
-beta = 0.8
-mu = 2
-lambda = 15
-param = c(alpha,beta,mu,lambda)
-U <- runif(N)
-#use a normal distribution as a starting distribution with mean 0 and sd 1
-start.dist <- function(x){
-  if(x<0){return(0)}
-  else{return((1/sqrt(2))*exp(0.5*(x)^2))}
+alpha = rep(0,N)
+beta = rep(0,N)
+mu = rep(0,N)
+lambda = rep(0,N)
+
+#FUNCTIONS and algorithm components
+alpha.prior <- function(alpha){return(alpha)}
+beta.prior <- function(beta){return(beta)}
+mu.prior <- function(mu){return(mu)}
+lambda.prior <- function(lambda){return(lambda)}
+likelihood <- function(alpha,beta,mu,lambda,x){
+  for(i in 1:length(x$enc)){
+    l <- 0
+    if(x$enc[i] == 0){
+      l = l + x$freq[i]*(alpha + (beta*exp(-mu)*mu^i) + ((1-alpha-beta)*exp(-lambda)*lambda^i))
+    }
+    else{
+      l = l + x$freq[i]*((beta*exp(-mu)*mu^i) + ((1-alpha-beta)*exp(-lambda)*lambda^i))/factorial(i)
+    }
+  }
+  return(l)
 }
-#Our target distribution is a poisson distribution
-target.dist <- function(x,lambda){
-  if(x<0){return(0)}
-  else{return((lambda^x*exp(x))/factorial(x))}
+log.likelihood <- function(alpha,beta,mu,lambda,x){
+  for(i in 1:length(x$enc)){
+    l <- 0
+    if(x$enc[i] == 0){
+      l = l + x$freq[i]*log(alpha + (beta*exp(-mu)*mu^i) + ((1-alpha-beta)*exp(-lambda)*lambda^i))
+    }
+    else{
+      l = l + x$freq[i]*log((beta*exp(-mu)*mu^i) + ((1-alpha-beta)*exp(-lambda)*lambda^i)) - log(factorial(i))
+    }
+  }
+  return(l)
 }
 
-x <- rnorm(1,0,1)
+alpha[1] <- 0.8 #initial alpha value
+beta[1] <- 0.7 #initial alpha value
+mu[1] <- 2 #initial alpha value
+lambda[1] <- 10 #initial alpha value
+sigma <- 2
 
 for(i in 2:N){
-  xt <- x[i-1]
-  y <- rnorm(1,0,1) + xt
-  num <- target.dist(y,lambda)*start.dist(xt)
-  dem <- target.dist(xt, lambda)*start.dist(y)
+  U <- runif(N,0,1)
+  alpha.previous <- alpha[i-1]
+  beta.previous <- beta[i-1]
+  mu.previous <- mu[i-1]
+  lambda.previous <- lambda[i-1]
+  alpha.prime <- rnorm(1,alpha.previous,sigma)
+  beta.prime <- rnorm(1,beta.previous,sigma)
+  mu.prime <- rnorm(1,mu.previous,sigma)
+  lambda.prime <- rnorm(1,lambda.previous,sigma)
   
-  if(U[i] <= num/dem){x[i] <- y}
+  num <- likelihood(alpha.prime,beta.prime,mu.prime,lambda.prime,data)
+  dem <- likelihood(alpha.previous,beta.previous,mu.previous,lambda.previous,data)
+  
+  if(U[i] < num/dem){
+    alpha[i] <- alpha.prime
+    beta[i] <- beta.prime
+    mu[i] <- mu.prime
+    lambda[i] <- lambda.prime
+  }
   else{
-    x[i] <- xt
+    alpha[i] <- alpha.previous
+    beta[i] <- beta.previous
+    mu[i] <- mu.previous
+    lambda[i] <- lambda.previous
     reject = reject + 1
   }
 }
-
+print("Rejection Rate:")
+100*(reject/N)
 
 ```
 
@@ -132,3 +188,4 @@ for(i in 2:N){
 
 \newpage 
 # Problem 5
+
