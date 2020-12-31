@@ -189,3 +189,35 @@ print("Rejection Rate:")
 \newpage 
 # Problem 5
 
+```{r Problem 5}
+set.seed(775)
+n <- 1000 #sample size
+mix <- 0.8*rnorm(n,0,1) + 0.2*rnorm(n,3,1)
+
+h1 <- 1.06*(n^(-1/5))*sd(mix)
+h2 <- 0.9*(n^(-1/5))*min(sd(mix),(IQR(mix))/1.34)
+k.gauss <- function(t){return((1/sqrt(2*pi))*-0.5*t^2)}
+
+plot(density(mix),col = 1,main = "Gaussian Kernel Density") #true density estimate
+lines(density(mix, bw = h1, kernel = "gaussian"),col = 2)
+lines(density(mix, bw =h2, kernel = "gaussian"),col = 3)
+legend("topright",c("True Density Mixture","h1 Bandwidth","h2 Bandwidth"),lty=1,col=1:3)
+
+#part b
+plot(density(mix, kernel = "epanechnikov"),col = 1,main = "Epanechnikov Kernel Density") #true density estimate
+lines(density(mix, bw = h1, kernel = "epanechnikov"),col = 2)
+lines(density(mix, bw =h2, kernel = "epanechnikov"),col = 3)
+legend("topright",c("True Density Mixture","h1 Bandwidth","h2 Bandwidth"),lty=1,col=1:3)
+
+plot(density(mix, kernel = "rectangular"),col = 1,main = "Rectangular Kernel Density") #true density estimate
+lines(density(mix, bw = h1, kernel = "rectangular"),col = 2)
+lines(density(mix, bw =h2, kernel = "rectangular"),col = 3)
+legend("topright",c("True Density Mixture","h1 Bandwidth","h2 Bandwidth"),lty=1,col=1:3)
+
+plot(density(mix, kernel = "triangular"),col = 1,main = "Triangular Kernel Density") #true density estimate
+lines(density(mix, bw = h1, kernel = "triangular"),col = 2)
+lines(density(mix, bw =h2, kernel = "triangular"),col = 3)
+legend("topright",c("True Density Mixture","h1 Bandwidth","h2 Bandwidth"),lty=1,col=1:3)
+
+```
+Based on the plots from above. The h2 bandwidth is a better smoothing parameter compared to using the h1 bandwidth. 
