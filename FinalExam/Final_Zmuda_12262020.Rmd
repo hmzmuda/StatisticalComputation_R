@@ -14,6 +14,8 @@ knitr::opts_chunk$set(echo = TRUE)
 **Show the outputs of the EM algorithm are consistent with the given parameter equations**
 To find the updated parameters (i.e. the maximized value) we fist need to find the Q-function (E step) then maximize the Q function by taking the derivative in regard to each of the parameters (M step).
 **E step:**
+Given the observed likelihood, we can compute the complete likelihood to be:
+$$L(\theta | n_{k,i}) = \Pi^{16}_{i = 0}\frac{[z(\theta)^{(n_0)} t(\theta)^{n_i}p(\theta)^{n_i}]}{i!}$$
 Given the likelihood equation, we can work out the log likelihood to be:
 $$log[L(\theta | n_{k,i})] = \Sigma^{16}_{i = 0} z_{0}log(\alpha 1_{i = 0}) + $$
 $$(t_i)[log(\alpha 1_{i = 0}) + log(\beta \mu^i e^{-\mu}) + log((1-\alpha-\beta)\lambda^ie^{-\lambda})] + $$
@@ -26,7 +28,7 @@ $$Q(\theta | \theta^{(t)}) = n_{z,0}^{(t)}\Sigma_{i = 0}^{16}log(\alpha 1_{i = 0
 For the M step of the EM algorithm, we need to maximize the Q function in regard to each parameter then set it equal to zero.
 
 When the derivative is set equal to zero, we find that the updated parameters equal to what we expected:
-$$\alpha^{(t+1)} = \frac{n_0z_0{\theta^t}}{N}$$
+$$\alpha^{(t+1)} = \frac{n_0z_0({\theta^{(t)}t})}{N}$$
 $$\beta^{(t+1)} = \Sigma^{16}_{i=0} \frac{n_it_i(\theta^{(t)})}{N}$$
 $$\mu^{(t+1)} = \frac{\Sigma^{16}_{i=0} i n_i t_i(\theta^{(t)})}{\Sigma^{16}_{i = 0}n_it_i(\theta^{(t)})}$$
 $$\lambda^{(t+1)} = \frac{\Sigma^{16}_{i=0} i n_i p_i(\theta^{(t)})}{\Sigma^{16}_{i = 0}n_ip_i(\theta^{(t)})}$$
@@ -175,44 +177,43 @@ minn = -2
 maxx = 2
 
 #functions
-target <- function(alpha,beta,mu,lambda,x){
+log.likelihood <- function(alpha,beta,mu,lambda,x){
   l = 0
-  for(j in 1:length(x$enc))
+  for(i in 1:length(x$enc))
   {
-    e = x$enc[j]
-    n = x$freq[j]
-    pi = (beta*exp(-mu)*mu^e) + ((1-alpha-beta)*exp(-lambda)*lambda^e)
-    pi[1] = pi[1] + alpha
-    z.stat = alpha/pi[1]
-    t.stat = (beta*(mu^e)*exp(-mu))/pi
-    p.stat = ((1-alpha-beta)*exp(-lambda)*lambda^e)/pi
-
+    #reparameterization
+    alpha = exp(alpha)/(1+exp(alpha))
+    beta = exp(beta)/(1+exp(beta))
+    mu = exp(mu)
+    lambda = exp(lambda)
+    
+    e = x$enc[i]
+    n = x$freq[i]
     if(e==0){
-      l = l * ((z.stat)^(n) + (t.stat)^(n) + (p.stat)^(n))
+      l = l + n*log(alpha + beta*exp(-mu) + (1-alpha-beta)*exp(-lambda))
     }
-
     else{
-      l = l * ((t.stat)^(n) + (p.stat^(n)))/(factorial(e))
+      l = l + n*log(beta*(mu^e)*exp(-mu) + (1-alpha-beta)*exp(-lambda)*lambda^e)-log(factorial(e))
     }
   }
-  return(l) 
+  return(l)
 }
-#target distribution
-g <- function(a,b,m,l,data){
-  
+prior.mu <- function(mu){
+  return(rpois(1,mu))
 }
-
+prior.lambda <- function(lambda){
+  return(rpois(1,lambda))
+}
 
 #initialize sample values
-alpha[1] = 0.5
+alpha[1] = 1
 beta[1] = 2
 mu[1] = 3
-lambda[1] = 5
-sigma = 4
+lambda[1] = 4
+sigma = 2
 i = 1
-result.m <- NULL
 
-for(i in 2:N){
+for(i in 2:5){
 
   #sample from proposal distribution (symmetrical)
   alpha.star <- rnorm(1,mean = alpha[i-1], sd = sigma)
@@ -220,11 +221,10 @@ for(i in 2:N){
   mu.star <- rnorm(1,mean = mu[i-1], sd = sigma)
   lambda.star <- rnorm(1,mean = lambda[i-1], sd = sigma)
   
-  #ratio <- g(x*)y(x(i-1))/g(x(i-1))y(x*)
-  ratio <- target(alpha.star,beta.star,mu.star,lambda.star,data)/target(alpha[i-1],beta[i-1],mu[i-1],lambda[i-1],data)
-
+  num <- log.likelihood(alpha.star,beta.star,mu.star,lambda.star,data)
+  dem <- log.likelihood(alpha[i-1],beta[i-1],mu[i-1],lambda[i-1],data)
+  ratio <- num/dem
   accept.prob <- min(1,ratio)
-  
   U = runif(1)
   
   if(U < accept.prob){
@@ -240,14 +240,19 @@ for(i in 2:N){
     lambda[i] <- lambda[i-1]
     reject = reject + 1
   }
-  reults.m<- rbind(result.m,c(alpha[i],beta[i],mu[i],lambda[i]))
 }
+#transform back
+alpha = exp(alpha)/(1+exp(alpha))
+beta = exp(beta)/(1+exp(beta))
+mu = exp(mu)
+lambda = exp(lambda)
+
 c(mean(alpha),mean(beta),mean(mu),mean(lambda))
 print("Rejection Rate:")
 100*(reject/N)
 
 ```
-Becuase the proposal distribution is symmetric, it can be canceled out in the 
+Because the proposal distribution is symmetric, it can be canceled out in the ratio calculation, and we can then focus on the ratio of the target distribution with theta star and the previous theta value.
 
 ## part b: MCMH
 ```{r Problem 2b}
@@ -268,22 +273,26 @@ minn = -5
 maxx = 5
 
 #functions
-like <- function(alpha,beta,mu,lambda,x){
+log.likelihood <- function(alpha,beta,mu,lambda,x){
   l = 0
   for(i in 1:length(x$enc))
   {
+    #reparameterize
+    alpha = exp(alpha)/(1+exp(alpha))
+    beta = exp(beta)/(1+exp(beta))
+    mu = exp(mu)
+    lambda = exp(lambda)
+    
     e = x$enc[i]
     n = x$freq[i]
-    
     if(e==0){
-      l = l * ((alpha)^(n) + (beta*exp(-mu))^(n) + ((1-alpha-beta)*exp(-lambda))^(n))
+      l = l + n*log(alpha + beta*exp(-mu) + (1-alpha-beta)*exp(-lambda))
     }
-
     else{
-      l = l * ((beta*exp(-mu)*mu^e)^(n) + ((1-alpha-beta)*exp(-lambda)*lambda^e)^(n))/(factorial(e))
+      l = l + n*log(beta*(mu^e)*exp(-mu) + (1-alpha-beta)*exp(-lambda)*lambda^e)-log(gamma(e+1))
     }
   }
-  return(l) 
+  return(-l)
 }
 
 #initialize samples
