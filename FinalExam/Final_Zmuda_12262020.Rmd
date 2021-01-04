@@ -21,14 +21,10 @@ $$(p_i)[log(\alpha 1_{i = 0}) + log(\beta \mu^i e^{-\mu}) + log((1-\alpha-\beta)
 where $y$ is the complete data set and $z_0,t_i, p_i$ represent three different groups. These are further broken down into the zero, typical, and promiscuous groups.
 To find your Q-function, take the expectation of the log likelihood function:
 
-$$Q(\theta | \theta^{(t)}) = \Sigma^{16}_{i = 0}[ \frac{n_0z_{0}(\theta^{(t)})log(\alpha 1_{i = 0})}{N} +$$
-$$
-\frac{n_i(t_i(\theta^{(t)}))[log(\beta \mu^i e^{-\mu}) + log((1-\alpha-\beta)\lambda^ie^{-\lambda})]}{N} +$$
-$$\frac{n_i(p_i(\theta^{(t)}))[log(\beta \mu^i e^{-\mu}) + log((1-\alpha-\beta)\lambda^ie^{-\lambda})]}{N} - log(i!)]$$
+$$Q(\theta | \theta^{(t)}) = n_{z,0}^{(t)}\Sigma_{i = 0}^{16}log(\alpha 1_{i = 0}) + n_{t,i}^{(t)}\Sigma_{i = 0}^{16}log(\beta \mu^i exp(-\mu)) + n_{p,i}^{(t)}\Sigma_{i = 0}^{16}log((1-\alpha-\beta)\lambda^iexp(\lambda))$$
 **M step:**
 For the M step of the EM algorithm, we need to maximize the Q function in regard to each parameter then set it equal to zero.
 
-$$\frac{dQ(\theta | \theta^{(t)})}{d\alpha^{(t)}} = \frac{n_0z_0(\theta^{(t)})}{N}$$
 When the derivative is set equal to zero, we find that the updated parameters equal to what we expected:
 $$\alpha^{(t+1)} = \frac{n_0z_0{\theta^t}}{N}$$
 $$\beta^{(t+1)} = \Sigma^{16}_{i=0} \frac{n_it_i(\theta^{(t)})}{N}$$
@@ -47,10 +43,31 @@ beta = 0.8
 mu = 2
 lambda = 15
 param = c(alpha,beta,mu,lambda)
+param.guess = c(0.1,0.2,3,4)
 tol = 1e-10
 tol.cur = 100
 time = 0
 i = 0:16
+#functions
+log.likelihood <- function(alpha,beta,mu,lambda,x){
+  l = 0
+  for(i in 1:length(x$enc))
+  {
+    e = x$enc[i]
+    n = x$freq[i]
+    pi = (beta*exp(-mu)*mu^i) + ((1-alpha-beta)*exp(-lambda)*lambda^i)
+    pi[1] = pi[1] + alpha
+    z.stat = alpha/(pi[1])
+    t.stat = (beta*(mu^i)*exp(-mu))/pi
+    p.stat = ((1-alpha-beta)*exp(-lambda)*lambda^i)/pi
+    
+    if(e==0)
+      l = l + n*z.stat*log(alpha) + n*t.stat*log(beta*exp(-mu)) + n*p.stat*log((1-alpha-beta)*exp(-lambda))
+    else
+      l = l + n*t.stat*log(beta*exp(-mu)*mu^e) + n*p.stat*log((1-alpha-beta)*exp(-lambda)*lambda^e)-log(gamma(e+1))
+  }
+  return(l)
+}
 
 #EM Algorithm
 while(tol.cur > tol){
@@ -87,22 +104,66 @@ for(i in 1:length(z)){
 
 legend("topright",c("Poisson mixtures","Poisson"),lty=1,col=1:2)
 
+```
+
+```{r Problem 1c}
 #standard error
 #Use log likelihood at theta.hat values (i.e. new parameter values)
+set.seed(1234)
+data = data.frame(enc=0:16,
+               freq=c(379,299,222,145,109,95,73,59,45,30,24,12,4,2,0,1,1))
+tol = 1e-10
+B = 1000
+result.boot <- NULL
+alpha <- 1
+beta <- 2
+mu <- 4
+lambda <- 10
+param <- c(alpha,beta,mu,lambda)
 
+for(j in 1:B){
+  #randomize samples
+  data.boot <- rmultinom(1,sum(data$freq),prob = data$freq/n)
+  #set initial values
+  tol.cur <- 100
+  N <- sum(data.boot)
+  i = c(0:16)
+  #loop
+  while(tol.cur > tol){
+    pi = (beta*exp(-mu)*mu^i) + ((1-alpha-beta)*exp(-lambda)*lambda^i)
+    pi[1] = pi[1] + alpha
+    z.stat = alpha/(pi[1])
+    t.stat = (beta*(mu^i)*exp(-mu))/pi
+    p.stat = ((1-alpha-beta)*exp(-lambda)*(lambda^i))/pi
+    
+    alpha = (data.boot[1]*z.stat)/N
+    beta = sum(data.boot*t.stat)/N
+    mu = sum(i*data.boot*t.stat)/sum(data.boot*t.stat)
+    lambda = sum(i*data.boot*p.stat)/sum(data.boot*p.stat)
+    
+    new.param = c(alpha,beta,mu,lambda)
+    tol.cur = sum(abs(new.param-param))
+    param = new.param
+  }
+  result.boot <- rbind(result.boot,param)
+}
+result.boot[B,]
+cov(result.boot) #covariance matrix to show standard error
 #pairwise correlation
-cor(x = param, y = param, use = "pairwise.complete.obs")
+cor(result.boot)
 ```
+
 \newpage
+
 # Problem 2
 ## part a: Metropolis and M-H Algorithm
 We are seeking to estimate $\alpha, \beta, \mu, \lambda$ using the Metropolis Algorithm.
 
 ```{r Problem 2a}
+#Metropolis Samples (Symmetric Proposal Distribution)
 set.seed(575)
-#initialize variables
-data = data.frame(enc=0:16,
-               freq=c(379,299,222,145,109,95,73,59,45,30,24,12,4,2,0,1,1))
+#initialize variables and constants
+data = data.frame(enc=0:16,freq=c(379,299,222,145,109,95,73,59,45,30,24,12,4,2,0,1,1))
 N = sum(data$freq)
 y = rep(data$enc,data$freq)
 reject <- 0
@@ -110,71 +171,144 @@ alpha = rep(0,N)
 beta = rep(0,N)
 mu = rep(0,N)
 lambda = rep(0,N)
+minn = -2
+maxx = 2
 
-#FUNCTIONS and algorithm components
-alpha.prior <- function(alpha){return(alpha)}
-beta.prior <- function(beta){return(beta)}
-mu.prior <- function(mu){return(mu)}
-lambda.prior <- function(lambda){return(lambda)}
-likelihood <- function(alpha,beta,mu,lambda,x){
-  for(i in 1:length(x$enc)){
-    l <- 0
-    if(x$enc[i] == 0){
-      l = l + x$freq[i]*(alpha + (beta*exp(-mu)*mu^i) + ((1-alpha-beta)*exp(-lambda)*lambda^i))
+#functions
+target <- function(alpha,beta,mu,lambda,x){
+  l = 0
+  for(j in 1:length(x$enc))
+  {
+    e = x$enc[j]
+    n = x$freq[j]
+    pi = (beta*exp(-mu)*mu^e) + ((1-alpha-beta)*exp(-lambda)*lambda^e)
+    pi[1] = pi[1] + alpha
+    z.stat = alpha/pi[1]
+    t.stat = (beta*(mu^e)*exp(-mu))/pi
+    p.stat = ((1-alpha-beta)*exp(-lambda)*lambda^e)/pi
+
+    if(e==0){
+      l = l * ((z.stat)^(n) + (t.stat)^(n) + (p.stat)^(n))
     }
+
     else{
-      l = l + x$freq[i]*((beta*exp(-mu)*mu^i) + ((1-alpha-beta)*exp(-lambda)*lambda^i))/factorial(i)
+      l = l * ((t.stat)^(n) + (p.stat^(n)))/(factorial(e))
     }
   }
-  return(l)
-}
-log.likelihood <- function(alpha,beta,mu,lambda,x){
-  for(i in 1:length(x$enc)){
-    l <- 0
-    if(x$enc[i] == 0){
-      l = l + x$freq[i]*log(alpha + (beta*exp(-mu)*mu^i) + ((1-alpha-beta)*exp(-lambda)*lambda^i))
-    }
-    else{
-      l = l + x$freq[i]*log((beta*exp(-mu)*mu^i) + ((1-alpha-beta)*exp(-lambda)*lambda^i)) - log(factorial(i))
-    }
-  }
-  return(l)
+  return(l) 
 }
 
-alpha[1] <- 0.8 #initial alpha value
-beta[1] <- 0.7 #initial alpha value
-mu[1] <- 2 #initial alpha value
-lambda[1] <- 10 #initial alpha value
-sigma <- 2
-
+#initialize samples
+alpha[1] = 0.5
+beta[1] = 2
+mu[1] = 3
+lambda[1] = 5
+i = 1
 for(i in 2:N){
-  U <- runif(N,0,1)
-  alpha.previous <- alpha[i-1]
-  beta.previous <- beta[i-1]
-  mu.previous <- mu[i-1]
-  lambda.previous <- lambda[i-1]
-  alpha.prime <- rnorm(1,alpha.previous,sigma)
-  beta.prime <- rnorm(1,beta.previous,sigma)
-  mu.prime <- rnorm(1,mu.previous,sigma)
-  lambda.prime <- rnorm(1,lambda.previous,sigma)
+
+  #sample from proposal distribution (symmetrical)
+  alpha.star <- alpha[i-1] + runif(1,minn,maxx)
+  beta.star <- beta[i-1] + runif(1,minn,maxx)
+  mu.star <- mu[i-1] + runif(1,minn,maxx)
+  lambda.star <- lambda[i-1] + runif(1,minn,maxx)
   
-  num <- likelihood(alpha.prime,beta.prime,mu.prime,lambda.prime,data)
-  dem <- likelihood(alpha.previous,beta.previous,mu.previous,lambda.previous,data)
+  ratio <- target(alpha.star,beta.star,mu.star,lambda.star,data)/target(alpha[i-1],beta[i-1],mu[i-1],lambda[i-1],data)
+  accept.prob <- min(1,ratio)
   
-  if(U[i] < num/dem){
-    alpha[i] <- alpha.prime
-    beta[i] <- beta.prime
-    mu[i] <- mu.prime
-    lambda[i] <- lambda.prime
+  U = runif(1)
+  
+  if(U < accept.prob){
+    alpha[i] <- alpha.star
+    beta[i] <- beta.star
+    mu[i] <- mu.star
+    lambda[i] <- lambda.star
   }
   else{
-    alpha[i] <- alpha.previous
-    beta[i] <- beta.previous
-    mu[i] <- mu.previous
-    lambda[i] <- lambda.previous
+    alpha[i] <- alpha[i-1]
+    beta[i] <- beta[i-1]
+    mu[i] <- mu[i-1]
+    lambda[i] <- lambda[i-1]
+    reject = reject + 1
+  }
+  c(alpha[i],beta[i],mu[i],lambda[i])
+}
+c(mean(alpha),mean(beta),mean(mu),mean(lambda))
+print("Rejection Rate:")
+100*(reject/N)
+
+```
+
+## part b: MCMH
+```{r Problem 2b}
+#Metropolis-Hastings Algorithm
+set.seed(575)
+#initialize variables and constants
+data = data.frame(enc=0:16,freq=c(379,299,222,145,109,95,73,59,45,30,24,12,4,2,0,1,1))
+N = sum(data$freq)
+y = rep(data$enc,data$freq)
+reject <- 0
+alpha = rep(0,N)
+beta = rep(0,N)
+mu = rep(0,N)
+lambda = rep(0,N)
+mean = 0
+sigma = 0.5
+minn = -5
+maxx = 5
+
+#functions
+like <- function(alpha,beta,mu,lambda,x){
+  l = 0
+  for(i in 1:length(x$enc))
+  {
+    e = x$enc[i]
+    n = x$freq[i]
+    
+    if(e==0){
+      l = l * ((alpha)^(n) + (beta*exp(-mu))^(n) + ((1-alpha-beta)*exp(-lambda))^(n))
+    }
+
+    else{
+      l = l * ((beta*exp(-mu)*mu^e)^(n) + ((1-alpha-beta)*exp(-lambda)*lambda^e)^(n))/(factorial(e))
+    }
+  }
+  return(l) 
+}
+
+#initialize samples
+alpha[1] = runif(1,minn,maxx)
+beta[1] = runif(1,minn,maxx)
+mu[1] = runif(1,minn,maxx)
+lambda[1] = runif(1,minn,maxx)
+i = 1
+
+for(i in 2:N){
+
+  #sample from proposal distribution (non-symmetrical)
+  alpha.star <- rnorm(1,alpha[i-1],sigma)
+  beta.star <- rnorm(1,beta[i-1],sigma)
+  mu.star <- rnorm(1,mu[i-1],sigma)
+  lambda.star <- rnorm(1,lambda[i-1],sigma)
+  ratio <- like(alpha.star,beta.star,mu.star,lambda.star,data)/like(alpha[i-1],beta[i-1],mu[i-1],lambda[i-1],data)
+  accept.prob <- min(1,ratio)
+  
+  U <- runif(1) #uniform distribution
+  
+  if(U < accept.prob){
+    alpha[i] <- alpha.star
+    beta[i] <- beta.star
+    mu[i] <- mu.star
+    lambda[i] <- lambda.star
+  }
+  else{
+    alpha[i] <- alpha[i-1]
+    beta[i] <- beta[i-1]
+    mu[i] <- mu[i-1]
+    lambda[i] <- lambda[i-1]
     reject = reject + 1
   }
 }
+c(mean(alpha),mean(beta),mean(mu),mean(lambda))
 print("Rejection Rate:")
 100*(reject/N)
 
@@ -188,35 +322,38 @@ print("Rejection Rate:")
 
 \newpage 
 # Problem 5
-
 ```{r Problem 5}
 set.seed(775)
 n <- 1000 #sample size
+comp <- sample(1:2, prob = c(0.8,0.2), size = n, replace = TRUE)
 mix <- 0.8*rnorm(n,0,1) + 0.2*rnorm(n,3,1)
+mu = c(0,3)
+stan.dev = c(1,1)
+samp <- rnorm(n, mean = mu[comp], sd = stan.dev[comp])
 
-h1 <- 1.06*(n^(-1/5))*sd(mix)
-h2 <- 0.9*(n^(-1/5))*min(sd(mix),(IQR(mix))/1.34)
+h1 <- 1.06*(n^(-1/5))*sd(samp)
+h2 <- 0.9*(n^(-1/5))*min(sd(samp),(IQR(samp))/1.34)
 k.gauss <- function(t){return((1/sqrt(2*pi))*-0.5*t^2)}
 
-plot(density(mix),col = 1,main = "Gaussian Kernel Density") #true density estimate
-lines(density(mix, bw = h1, kernel = "gaussian"),col = 2)
-lines(density(mix, bw =h2, kernel = "gaussian"),col = 3)
+plot(density(samp),col = 1,main = "Gaussian Kernel Density", lwd = 2) #true density estimate
+lines(density(samp, bw = h1, kernel = "gaussian"),col = 2)
+lines(density(samp, bw =h2, kernel = "gaussian"),col = 3)
 legend("topright",c("True Density Mixture","h1 Bandwidth","h2 Bandwidth"),lty=1,col=1:3)
 
 #part b
-plot(density(mix, kernel = "epanechnikov"),col = 1,main = "Epanechnikov Kernel Density") #true density estimate
-lines(density(mix, bw = h1, kernel = "epanechnikov"),col = 2)
-lines(density(mix, bw =h2, kernel = "epanechnikov"),col = 3)
+plot(density(samp, kernel = "epanechnikov"),col = 1,main = "Epanechnikov Kernel Density", lwd = 2) #true density estimate
+lines(density(samp, bw = h1, kernel = "epanechnikov"),col = 2)
+lines(density(samp, bw =h2, kernel = "epanechnikov"),col = 3)
 legend("topright",c("True Density Mixture","h1 Bandwidth","h2 Bandwidth"),lty=1,col=1:3)
 
-plot(density(mix, kernel = "rectangular"),col = 1,main = "Rectangular Kernel Density") #true density estimate
-lines(density(mix, bw = h1, kernel = "rectangular"),col = 2)
-lines(density(mix, bw =h2, kernel = "rectangular"),col = 3)
+plot(density(samp, kernel = "rectangular"),col = 1,main = "Rectangular Kernel Density",lwd = 2) #true density estimate
+lines(density(samp, bw = h1, kernel = "rectangular"),col = 2)
+lines(density(samp, bw =h2, kernel = "rectangular"),col = 3)
 legend("topright",c("True Density Mixture","h1 Bandwidth","h2 Bandwidth"),lty=1,col=1:3)
 
-plot(density(mix, kernel = "triangular"),col = 1,main = "Triangular Kernel Density") #true density estimate
-lines(density(mix, bw = h1, kernel = "triangular"),col = 2)
-lines(density(mix, bw =h2, kernel = "triangular"),col = 3)
+plot(density(samp, kernel = "triangular"),col = 1,main = "Triangular Kernel Density", lwd = 2) #true density estimate
+lines(density(samp, bw = h1, kernel = "triangular"),col = 2)
+lines(density(samp, bw =h2, kernel = "triangular"),col = 3)
 legend("topright",c("True Density Mixture","h1 Bandwidth","h2 Bandwidth"),lty=1,col=1:3)
 
 ```
