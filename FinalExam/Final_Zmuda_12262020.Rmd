@@ -53,20 +53,22 @@ i = 0:16
 #functions
 log.likelihood <- function(alpha,beta,mu,lambda,x){
   l = 0
+    alpha = exp(alpha)/(1+exp(alpha))
+  beta = exp(beta)/(1+exp(beta))
+  mu = exp(mu)/(1+exp(mu))
+  lambda = exp(lambda)/(1+exp(lambda))
   for(i in 1:length(x$enc))
   {
     e = x$enc[i]
     n = x$freq[i]
-    pi = (beta*exp(-mu)*mu^i) + ((1-alpha-beta)*exp(-lambda)*lambda^i)
-    pi[1] = pi[1] + alpha
-    z.stat = alpha/(pi[1])
-    t.stat = (beta*(mu^i)*exp(-mu))/pi
-    p.stat = ((1-alpha-beta)*exp(-lambda)*lambda^i)/pi
-    
-    if(e==0)
-      l = l + n*z.stat*log(alpha) + n*t.stat*log(beta*exp(-mu)) + n*p.stat*log((1-alpha-beta)*exp(-lambda))
-    else
-      l = l + n*t.stat*log(beta*exp(-mu)*mu^e) + n*p.stat*log((1-alpha-beta)*exp(-lambda)*lambda^e)-log(gamma(e+1))
+    if(e==0){
+      l = l + n*log   (alpha + beta*exp(-mu) + (1-alpha-beta)*exp(-lambda))
+      print(l)
+    }
+    else{
+      l = l + n*log(beta*(mu^e)*exp(-mu) + (1-alpha-beta)*exp(-lambda)*lambda^e)-log(factorial(e))
+      print(l)
+    }
   }
   return(l)
 }
@@ -125,7 +127,7 @@ param <- c(alpha,beta,mu,lambda)
 
 for(j in 1:B){
   #randomize samples
-  data.boot <- rmultinom(1,sum(data$freq),prob = data$freq/n)
+  data.boot <- rmultinom(1,sum(data$freq),prob = data$freq/length(data$freq))
   #set initial values
   tol.cur <- 100
   N <- sum(data.boot)
@@ -161,6 +163,9 @@ cor(result.boot)
 ## part a: Metropolis and M-H Algorithm
 We are seeking to estimate $\alpha, \beta, \mu, \lambda$ using the Metropolis Algorithm.
 
+Because the proposal distribution is symmetric, it can be canceled out in the ratio calculation, and we can then focus on the ratio of the target distribution with theta star and the previous theta value.
+
+## part 2: MCMH
 ```{r Problem 2a}
 #Metropolis Samples (Symmetric Proposal Distribution)
 set.seed(575)
@@ -173,61 +178,57 @@ alpha = rep(0,N)
 beta = rep(0,N)
 mu = rep(0,N)
 lambda = rep(0,N)
-minn = -2
-maxx = 2
+minn = -1
+maxx = 1
 
 #functions
 log.likelihood <- function(alpha,beta,mu,lambda,x){
   l = 0
+  #reparameterization
+  alpha = exp(alpha)/(1+exp(alpha))
+  beta = exp(beta)/(1+exp(beta))
+  mu = exp(mu)/(1+exp(mu))
+  lambda = exp(lambda)/(1+exp(lambda))
   for(i in 1:length(x$enc))
   {
-    #reparameterization
-    alpha = exp(alpha)/(1+exp(alpha))
-    beta = exp(beta)/(1+exp(beta))
-    mu = exp(mu)
-    lambda = exp(lambda)
-    
     e = x$enc[i]
     n = x$freq[i]
     if(e==0){
       l = l + n*log(alpha + beta*exp(-mu) + (1-alpha-beta)*exp(-lambda))
+      print(l)
     }
     else{
-      l = l + n*log(beta*(mu^e)*exp(-mu) + (1-alpha-beta)*exp(-lambda)*lambda^e)-log(factorial(e))
+      l =l + n*log(beta*(mu^e)*exp(-mu) + (1-alpha-beta)*exp(-lambda)*lambda^e)-log(factorial(e))
+      print(l)
     }
   }
   return(l)
 }
-prior.mu <- function(mu){
-  return(rpois(1,mu))
-}
-prior.lambda <- function(lambda){
-  return(rpois(1,lambda))
-}
 
-#initialize sample values
-alpha[1] = 1
-beta[1] = 2
-mu[1] = 3
-lambda[1] = 4
-sigma = 2
+#initialize sample values i.e chains
+alpha[1] = rnorm(1,0,1)
+beta[1] = rnorm(1,0,1)
+mu[1] = rnorm(1,0,1)
+lambda[1] = rnorm(1,0,1)
+sigma = 1
 i = 1
 
-for(i in 2:5){
+for(i in 2:N){
 
   #sample from proposal distribution (symmetrical)
   alpha.star <- rnorm(1,mean = alpha[i-1], sd = sigma)
   beta.star <- rnorm(1,mean = beta[i-1], sd = sigma)
   mu.star <- rnorm(1,mean = mu[i-1], sd = sigma)
   lambda.star <- rnorm(1,mean = lambda[i-1], sd = sigma)
-  
+  print(c(alpha.star,beta.star,mu.star,lambda.star))
+
   num <- log.likelihood(alpha.star,beta.star,mu.star,lambda.star,data)
   dem <- log.likelihood(alpha[i-1],beta[i-1],mu[i-1],lambda[i-1],data)
-  ratio <- num/dem
+  ratio <- exp(num) - exp(dem)
   accept.prob <- min(1,ratio)
   U = runif(1)
-  
-  if(U < accept.prob){
+
+  if(U <= accept.prob){
     alpha[i] <- alpha.star
     beta[i] <- beta.star
     mu[i] <- mu.star
@@ -241,101 +242,54 @@ for(i in 2:5){
     reject = reject + 1
   }
 }
-#transform back
-alpha = exp(alpha)/(1+exp(alpha))
-beta = exp(beta)/(1+exp(beta))
-mu = exp(mu)
-lambda = exp(lambda)
-
+  # alpha = exp(alpha)/(1+exp(alpha))
+  # beta = exp(beta)/(1+exp(beta))
+  # mu = exp(mu)
+  # lambda = exp(lambda)
 c(mean(alpha),mean(beta),mean(mu),mean(lambda))
 print("Rejection Rate:")
 100*(reject/N)
 
 ```
-Because the proposal distribution is symmetric, it can be canceled out in the ratio calculation, and we can then focus on the ratio of the target distribution with theta star and the previous theta value.
 
-## part b: MCMH
-```{r Problem 2b}
-#Metropolis-Hastings Algorithm
-set.seed(575)
-#initialize variables and constants
-data = data.frame(enc=0:16,freq=c(379,299,222,145,109,95,73,59,45,30,24,12,4,2,0,1,1))
-N = sum(data$freq)
-y = rep(data$enc,data$freq)
-reject <- 0
-alpha = rep(0,N)
-beta = rep(0,N)
-mu = rep(0,N)
-lambda = rep(0,N)
-mean = 0
-sigma = 0.5
-minn = -5
-maxx = 5
 
-#functions
-log.likelihood <- function(alpha,beta,mu,lambda,x){
-  l = 0
-  for(i in 1:length(x$enc))
-  {
-    #reparameterize
-    alpha = exp(alpha)/(1+exp(alpha))
-    beta = exp(beta)/(1+exp(beta))
-    mu = exp(mu)
-    lambda = exp(lambda)
-    
-    e = x$enc[i]
-    n = x$freq[i]
-    if(e==0){
-      l = l + n*log(alpha + beta*exp(-mu) + (1-alpha-beta)*exp(-lambda))
-    }
-    else{
-      l = l + n*log(beta*(mu^e)*exp(-mu) + (1-alpha-beta)*exp(-lambda)*lambda^e)-log(gamma(e+1))
-    }
-  }
-  return(-l)
-}
-
-#initialize samples
-alpha[1] = runif(1,minn,maxx)
-beta[1] = runif(1,minn,maxx)
-mu[1] = runif(1,minn,maxx)
-lambda[1] = runif(1,minn,maxx)
-i = 1
-
-for(i in 2:N){
-
-  #sample from proposal distribution (non-symmetrical)
-  alpha.star <- rnorm(1,alpha[i-1],sigma)
-  beta.star <- rnorm(1,beta[i-1],sigma)
-  mu.star <- rnorm(1,mu[i-1],sigma)
-  lambda.star <- rnorm(1,lambda[i-1],sigma)
-  ratio <- like(alpha.star,beta.star,mu.star,lambda.star,data)/like(alpha[i-1],beta[i-1],mu[i-1],lambda[i-1],data)
-  accept.prob <- min(1,ratio)
-  
-  U <- runif(1) #uniform distribution
-  
-  if(U < accept.prob){
-    alpha[i] <- alpha.star
-    beta[i] <- beta.star
-    mu[i] <- mu.star
-    lambda[i] <- lambda.star
-  }
-  else{
-    alpha[i] <- alpha[i-1]
-    beta[i] <- beta[i-1]
-    mu[i] <- mu[i-1]
-    lambda[i] <- lambda[i-1]
-    reject = reject + 1
-  }
-}
-c(mean(alpha),mean(beta),mean(mu),mean(lambda))
-print("Rejection Rate:")
-100*(reject/N)
-
-```
 
 \newpage
 # Problem 3
+## part a:
+From the given data for the clinical trial, we can see from the box-and-whisker plot that the Hormone group with the censored time has the most patients out of the four groups. Not only that, but the means are more spread apart within the hormone group (difference of 13.68) compared to the control group (difference of 7.2). Based on the combined Normal QQ plot, the Control Group with Censored time most closely follows a normal distribution ("3" from list.id legend). The two from the hormone group of Recurrence and Censor times (0 and 1, respectively), do not closely align with a normal distribution.
+## part b: 
+
+
+```{r Problem 3}
+set.seed(12345)
+library(ggplot2)
+#initialize data sets
+hormone.rec <- c(2,4,6,9,9,9,13,14,18,23,31,32,33,34,43)
+lab.h.r <- rep(0,length(hormone.rec))
+hormone.cens <- c(10,14,14,16,17,18,18,19,20,20,21,21,23,24,29,29,30,30,31,31,31,33,35,37,40,41,42,42,44,46,48,51,53,54,54,55,56)
+lab.h.c <- rep(1,length(hormone.cens))
+control.rec = c(1,4,6,7,13,24,25,35,35,39)
+lab.c.r <- rep(2,length(control.rec))
+control.cens = c(1,1,3,4,5,8,10,11,13,14,14,15,17,19,20,22,24,24,24,25,26,26,26,28,29,29,32,35,38,39,40,41,44,45,47,47,47,50,50,51)
+lab.c.c <- rep(3,length(control.cens))
+list.id <- c(lab.h.r,lab.h.c,lab.c.r,lab.c.c)
+dat.df <- c(hormone.rec,hormone.cens,control.rec,control.cens)
+
+cancer.dat <- data.frame(dat.df,list.id)
+cancer.dat$list.id <- as.factor(cancer.dat$list.id)
+
+#part a: Plots and quantiles
+dat.list <- list(hormone.rec,hormone.cens,control.rec,control.cens)
+boxplot(dat.list, range = 0.0, names = c("HG: Rec","HG: Cens","CG: Rec","CG: Cens"),xlab = "Patient Group",ylab = "Observed Months")
+
+p <- qplot(sample = dat.df,data = cancer.dat, color = list.id, shape = list.id)
+p + labs(title = "Months in Trial \n Based on Treatment Group", y = "Months in Trial")
+
+#part c: Gibbs Sampler
+
+
+```
 
 \newpage 
 # Problem 4
