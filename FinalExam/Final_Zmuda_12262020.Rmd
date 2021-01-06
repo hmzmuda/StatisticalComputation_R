@@ -407,12 +407,16 @@ cat("Mean Recurrence Time for Control Group", mean(control.estimate), "\n")
 #part c:
 B = 1000 #Bootstrap Iteration
 alpha <- 0.05
-hormone.boot <- sort(sample(hormone.estimate, size = B, replace = TRUE))
-control.boot <- sort(sample(control.estimate, size = B, replace = TRUE))
+means.hormone <- rep(0,B)
+means.control <- rep(0,B)
+for(i in 1:B){
+  means.hormone[i] <- mean(sample(hormone.estimate, size = 1:length(hormone.estimate), replace = TRUE))
+  means.control[i] <- mean(sample(control.estimate, size = 1:length(control.estimate), replace = TRUE))
+}
 j <- (alpha/2) * B
 k <- (1-(alpha/2)) * B
-cat("95% CI for Hormone Group:", c(hormone.boot[j],hormone.boot[k]),"\n")
-cat("95% CI for Control Group:", c(control.boot[j],control.boot[k]),"\n")
+cat("95% CI for Hormone Group:", c(means.hormone[j],means.hormone[k]),"\n")
+cat("95% CI for Control Group:", c(means.control[j],means.control[k]),"\n")
 
 #part d: Permutation Tests
 # Use permutation tests to show that there is no difference between the mean recurrence times
