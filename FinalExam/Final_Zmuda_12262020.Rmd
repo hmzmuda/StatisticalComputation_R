@@ -6,7 +6,7 @@ output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE,tidy.opts=list(width.cutoff=60),tidy=TRUE)
 ```
 
 # Problem 1
@@ -213,42 +213,42 @@ lambda[1] = rnorm(1,0,1)
 sigma = 1
 i = 1
 
-for(i in 2:N){
-
-  #sample from proposal distribution (symmetrical)
-  alpha.star <- rnorm(1,mean = alpha[i-1], sd = sigma)
-  beta.star <- rnorm(1,mean = beta[i-1], sd = sigma)
-  mu.star <- rnorm(1,mean = mu[i-1], sd = sigma)
-  lambda.star <- rnorm(1,mean = lambda[i-1], sd = sigma)
-  print(c(alpha.star,beta.star,mu.star,lambda.star))
-
-  num <- log.likelihood(alpha.star,beta.star,mu.star,lambda.star,data)
-  dem <- log.likelihood(alpha[i-1],beta[i-1],mu[i-1],lambda[i-1],data)
-  ratio <- exp(num) - exp(dem)
-  accept.prob <- min(1,ratio)
-  U = runif(1)
-
-  if(U <= accept.prob){
-    alpha[i] <- alpha.star
-    beta[i] <- beta.star
-    mu[i] <- mu.star
-    lambda[i] <- lambda.star
-  }
-  else{
-    alpha[i] <- alpha[i-1]
-    beta[i] <- beta[i-1]
-    mu[i] <- mu[i-1]
-    lambda[i] <- lambda[i-1]
-    reject = reject + 1
-  }
-}
-  # alpha = exp(alpha)/(1+exp(alpha))
-  # beta = exp(beta)/(1+exp(beta))
-  # mu = exp(mu)
-  # lambda = exp(lambda)
-c(mean(alpha),mean(beta),mean(mu),mean(lambda))
-print("Rejection Rate:")
-100*(reject/N)
+# for(i in 2:N){
+# 
+#   #sample from proposal distribution (symmetrical)
+#   alpha.star <- rnorm(1,mean = alpha[i-1], sd = sigma)
+#   beta.star <- rnorm(1,mean = beta[i-1], sd = sigma)
+#   mu.star <- rnorm(1,mean = mu[i-1], sd = sigma)
+#   lambda.star <- rnorm(1,mean = lambda[i-1], sd = sigma)
+#   print(c(alpha.star,beta.star,mu.star,lambda.star))
+# 
+#   num <- log.likelihood(alpha.star,beta.star,mu.star,lambda.star,data)
+#   dem <- log.likelihood(alpha[i-1],beta[i-1],mu[i-1],lambda[i-1],data)
+#   ratio <- exp(num) - exp(dem)
+#   accept.prob <- min(1,ratio)
+#   U = runif(1)
+# 
+#   if(U <= accept.prob){
+#     alpha[i] <- alpha.star
+#     beta[i] <- beta.star
+#     mu[i] <- mu.star
+#     lambda[i] <- lambda.star
+#   }
+#   else{
+#     alpha[i] <- alpha[i-1]
+#     beta[i] <- beta[i-1]
+#     mu[i] <- mu[i-1]
+#     lambda[i] <- lambda[i-1]
+#     reject = reject + 1
+#   }
+# }
+#   # alpha = exp(alpha)/(1+exp(alpha))
+#   # beta = exp(beta)/(1+exp(beta))
+#   # mu = exp(mu)
+#   # lambda = exp(lambda)
+# c(mean(alpha),mean(beta),mean(mu),mean(lambda))
+# print("Rejection Rate:")
+# 100*(reject/N)
 
 ```
 
@@ -259,6 +259,15 @@ print("Rejection Rate:")
 ## part a:
 From the given data for the clinical trial, we can see from the box-and-whisker plot that the Hormone group with the censored time has the most patients out of the four groups. Not only that, but the means are more spread apart within the hormone group (difference of 13.68) compared to the control group (difference of 7.2). Based on the combined Normal QQ plot, the Control Group with Censored time most closely follows a normal distribution ("3" from list.id legend). The two from the hormone group of Recurrence and Censor times (0 and 1, respectively), do not closely align with a normal distribution.
 ## part b: 
+Given the likelihood and prior, we can use those to calculate the conditional distributions of $\theta$ and $\tau$. To do this we will first need to calculate the joint probability density function:
+$$P(y|\theta,\tau) \propto L(\theta,\tau|y)f(\theta,\tau)$$
+$$\pi(\theta,\tau|y) \propto \pi(\theta,\tau,y) = L(\theta,\tau|y)f(\theta,\tau)$$
+$$P(\theta,\tau|y) = \theta^{\Sigma \delta_i^c + \Sigma\delta_i^H +2a}\tau^{\Sigma\delta_i^H + b}exp(-\theta(\Sigma x_i^C + c) - \tau\theta(\Sigma x_i^H + d))$$
+With this we can calculate the conditional distributions for the parameters:
+$$P(\tau | \theta,y) = \tau^{\Sigma\delta_i^H + b}exp(- \tau\theta(\Sigma x_i^H + d))$$
+$$ \propto Gamma(\tau | \Sigma\delta_i^H + b + 1,\Sigma x_i^C \Sigma x_i^H + c + d$$
+$$P(\theta|\tau,y) = \theta^{\Sigma \delta_i^c + \Sigma\delta_i^H + a}exp(-\theta(\Sigma x_i^C + c) - \tau\theta(\Sigma x_i^H + d))$$
+$$ \propto Gamma(\theta | \Sigma \delta_i^c + \Sigma\delta_i^H + a + 1,\Sigma x_i^C + \tau \Sigma x_i^H + c + d\tau$$
 
 
 ```{r Problem 3}
@@ -286,7 +295,44 @@ boxplot(dat.list, range = 0.0, names = c("HG: Rec","HG: Cens","CG: Rec","CG: Cen
 p <- qplot(sample = dat.df,data = cancer.dat, color = list.id, shape = list.id)
 p + labs(title = "Months in Trial \n Based on Treatment Group", y = "Months in Trial")
 
+ggplot(cancer.dat,aes(x = dat.df, fill = list.id, color = list.id))+ geom_histogram(position = "identity", fill = "transparent") + labs(title = "Histogram of Censored vs. Recurrence time in Test groups", x = "Time in Months to Second Recurrence")
+
 #part c: Gibbs Sampler
+#Initialize and prepare recurrence and censored data based on patient group
+delta.h <- c(rep(1,length(hormone.rec)),rep(0,length(hormone.cens)))
+delta.c <- c(rep(1,length(control.rec)),rep(0,length(control.cens)))
+dat.hormone <- data.frame(x = c(hormone.rec,hormone.cens),delta.h)
+dat.control <- data.frame(x = c(control.rec,control.cens),delta.c)
+a = 3
+b = 1
+c = 60
+d = 120
+
+gibbs <- function(dat.control,dat.hormone,n){
+  mat <- matrix(ncol = 2, nrow = n)
+  tau <- 0
+  theta <- 0
+  mat[1,] <- c(theta,tau)
+  for(i in 2:n){
+    theta <- rgamma(1,shape = a+1+sum(dat.control$delta.c)+sum(dat.hormone$delta.h),rate = sum(dat.control$x)+tau*sum(dat.hormone$x)+c+d*tau)
+    tau <- rgamma(1,shape = b+1+sum(dat.hormone$delta.h),theta*sum(dat.hormone$x)+theta*d)
+    mat[i,] <- c(theta,tau)
+  }
+  return(mat)
+}
+
+gibby <- gibbs(dat.control,dat.hormone,1000)
+c(mean(gibby[,1]),mean(gibby[,2]))
+gibbies <- gibbs(dat.control,dat.hormone,10000)
+c(mean(gibbies[,1]),mean(gibbies[,2]))
+#Convergence diagnostics
+par(mfrow=c(2,2))
+plot(ts(gibby[,2]),main = "Tau from 1000 Iterations",ylab = "Tau")
+abline(h = mean(gibby[,2]),col = "red")
+plot(ts(gibbies[,2]),main = "Tau from 10000 Iterations",ylab = "Tau")
+abline(h = mean(gibby[,2]),col = "blue")
+hist(gibby[,2],40,main = "Tau from 1000 Iterations",xlab = "Tau Estimates")
+hist(gibbies[,2],100,main = "Tau from 10000 Iterations",xlab = "Tau Estimates")
 
 
 ```
@@ -331,4 +377,4 @@ lines(density(samp, bw =h2, kernel = "triangular"),col = 3)
 legend("topright",c("True Density Mixture","h1 Bandwidth","h2 Bandwidth"),lty=1,col=1:3)
 
 ```
-Based on the plots from above. The h2 bandwidth is a better smoothing parameter compared to using the h1 bandwidth. 
+Based on the plots from above: The h2 bandwidth is a better smoothing parameter compared to using the h1 bandwidth because the h2 bandwidth plot fits over the true density mixture plots. Moreover, this shows that while changing the kernel type will change the shape of the mixture plot, the h2 bandwidth still fits over the true density mixture better than the h1 bandwidth plot. The h1 bandwidth plot is hardly affected when changing the kernel.
