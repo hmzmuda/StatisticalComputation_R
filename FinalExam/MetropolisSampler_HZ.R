@@ -27,11 +27,9 @@ log.likelihood <- function(alpha,beta,mu,lambda,x){
     n = x$freq[i]
     if(e==0){
       l = l + n*log(alpha + beta*exp(-mu) + (1-alpha-beta)*exp(-lambda))
-      print(l)
     }
     else{
       l =l + n*log(beta*(mu^e)*exp(-mu) + (1-alpha-beta)*exp(-lambda)*lambda^e)-log(factorial(e))
-      print(l)
     }
   }
   return(l)
@@ -56,7 +54,7 @@ for(i in 2:N){
   
   num <- log.likelihood(alpha.star,beta.star,mu.star,lambda.star,data)
   dem <- log.likelihood(alpha[i-1],beta[i-1],mu[i-1],lambda[i-1],data)
-  ratio <- exp(num) - exp(dem)
+  ratio <- exp(num - dem)
   accept.prob <- min(1,ratio)
   U = runif(1)
   

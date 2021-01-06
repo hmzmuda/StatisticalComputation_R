@@ -195,11 +195,9 @@ log.likelihood <- function(alpha,beta,mu,lambda,x){
     n = x$freq[i]
     if(e==0){
       l = l + n*log(alpha + beta*exp(-mu) + (1-alpha-beta)*exp(-lambda))
-      print(l)
     }
     else{
       l =l + n*log(beta*(mu^e)*exp(-mu) + (1-alpha-beta)*exp(-lambda)*lambda^e)-log(factorial(e))
-      print(l)
     }
   }
   return(l)
@@ -213,42 +211,42 @@ lambda[1] = rnorm(1,0,1)
 sigma = 1
 i = 1
 
-# for(i in 2:N){
-# 
-#   #sample from proposal distribution (symmetrical)
-#   alpha.star <- rnorm(1,mean = alpha[i-1], sd = sigma)
-#   beta.star <- rnorm(1,mean = beta[i-1], sd = sigma)
-#   mu.star <- rnorm(1,mean = mu[i-1], sd = sigma)
-#   lambda.star <- rnorm(1,mean = lambda[i-1], sd = sigma)
-#   print(c(alpha.star,beta.star,mu.star,lambda.star))
-# 
-#   num <- log.likelihood(alpha.star,beta.star,mu.star,lambda.star,data)
-#   dem <- log.likelihood(alpha[i-1],beta[i-1],mu[i-1],lambda[i-1],data)
-#   ratio <- exp(num) - exp(dem)
-#   accept.prob <- min(1,ratio)
-#   U = runif(1)
-# 
-#   if(U <= accept.prob){
-#     alpha[i] <- alpha.star
-#     beta[i] <- beta.star
-#     mu[i] <- mu.star
-#     lambda[i] <- lambda.star
-#   }
-#   else{
-#     alpha[i] <- alpha[i-1]
-#     beta[i] <- beta[i-1]
-#     mu[i] <- mu[i-1]
-#     lambda[i] <- lambda[i-1]
-#     reject = reject + 1
-#   }
-# }
-#   # alpha = exp(alpha)/(1+exp(alpha))
-#   # beta = exp(beta)/(1+exp(beta))
-#   # mu = exp(mu)
-#   # lambda = exp(lambda)
-# c(mean(alpha),mean(beta),mean(mu),mean(lambda))
-# print("Rejection Rate:")
-# 100*(reject/N)
+for(i in 2:N){
+
+  #sample from proposal distribution (symmetrical)
+  alpha.star <- rnorm(1,mean = alpha[i-1], sd = sigma)
+  beta.star <- rnorm(1,mean = beta[i-1], sd = sigma)
+  mu.star <- rnorm(1,mean = mu[i-1], sd = sigma)
+  lambda.star <- rnorm(1,mean = lambda[i-1], sd = sigma)
+  print(c(alpha.star,beta.star,mu.star,lambda.star))
+
+  num <- log.likelihood(alpha.star,beta.star,mu.star,lambda.star,data)
+  dem <- log.likelihood(alpha[i-1],beta[i-1],mu[i-1],lambda[i-1],data)
+  ratio <- exp(num - dem)
+  accept.prob <- min(1,ratio)
+  U = runif(1)
+
+  if(U <= accept.prob){
+    alpha[i] <- alpha.star
+    beta[i] <- beta.star
+    mu[i] <- mu.star
+    lambda[i] <- lambda.star
+  }
+  else{
+    alpha[i] <- alpha[i-1]
+    beta[i] <- beta[i-1]
+    mu[i] <- mu[i-1]
+    lambda[i] <- lambda[i-1]
+    reject = reject + 1
+  }
+}
+alpha = exp(alpha)/(1+exp(alpha))
+beta = exp(beta)/(1+exp(beta))
+mu = exp(mu)
+lambda = exp(lambda)
+c(mean(alpha),mean(beta),mean(mu),mean(lambda))
+print("Rejection Rate:")
+100*(reject/N)
 
 ```
 
@@ -323,25 +321,30 @@ posterior <- function(dat.control,dat.hormone,theta,tau){
 
 gibbs <- function(dat.control,dat.hormone,n,burn,hyperparameter){
   mat <- matrix(ncol = 2, nrow = n)
-  tau <- 0
-  theta <- 0
+  tau <- 1
+  theta <- 2
   mat[1,] <- c(theta,tau)
   a <- hyperparameter[1]
   b <- hyperparameter[2]
   c <- hyperparameter[3]
   d <- hyperparameter[4]
   for(i in 2:n){
-    theta <- rgamma(1,shape = a+1+sum(dat.control$delta.c)+sum(dat.hormone$delta.h),rate = sum(dat.control$x)+tau*sum(dat.hormone$x)+c+d*tau)
-    tau <- rgamma(1,shape = b+1+sum(dat.hormone$delta.h),theta*sum(dat.hormone$x)+theta*d)
-    mat[i,] <- c(theta,tau)
+    tau <- mat[i-1,2]
+    one.tau <- a + 1 + sum(dat.control$delta.c) + sum(dat.hormone$delta.h)
+    two.tau <-  sum(dat.control$x) + (tau*sum(dat.hormone$x)) + c + (d*tau)
+    mat[i,1] <- rgamma(1, one.tau, two.tau)
+    theta <- mat[i,1]
+    one.theta <- b + 1 + sum(dat.hormone$delta.h)
+    two.theta <- theta*sum(dat.hormone$x) + (theta*d)
+    mat[i,2] <- rgamma(1, one.theta, two.theta)
   }
   burn <- burn + 1
   return(mat[burn:n,])
 }
 
-gibby <- gibbs(dat.control,dat.hormone,1000,100,c(a,b,c,d))
+gibby <- gibbs(dat.control,dat.hormone,1000,100,c(3,1,60,120))
 colMeans(gibby)
-gibbies <- gibbs(dat.control,dat.hormone,10000,2500,c(a,b,c,d))
+gibbies <- gibbs(dat.control,dat.hormone,5000,1000,c(3,1,60,120))
 colMeans(gibbies)
 #Convergence diagnostics
 par(mfrow=c(2,2))
@@ -391,7 +394,49 @@ For the hyperparameters, we can see from the table of summary statistics, that c
 ```{r Problem 4}
 set.seed(475)
 #part b: mean recurrence time
+m.r.h <- mean(hormone.rec)
+m.r.c <- mean(control.rec)
+cat("Mean Recurrence Time for Hormone Group", m.r.h,"\n")
+cat("Mean Recurrence Time for Control Group", m.r.c, "\n")
 
+tau.est <- gibbies[,2]
+theta.est <- gibbies[,1]
+better <- c(0.032429,0.76652)
+hormone.estimate <- rexp(length(theta.est),rate = mean(tau.est)*mean(theta.est))
+control.estimate <- rexp(length(theta.est),rate = mean(theta.est))
+cat("Mean Recurrence Time for Hormone Group", mean(hormone.estimate),"\n")
+cat("Mean Recurrence Time for Control Group", mean(control.estimate), "\n")
+
+#part c:
+B = 1000 #Bootstrap Iteration
+hormone.boot <- sort(sample(hormone.estimate, size = B, replace = TRUE))
+control.boot <- sort(sample(control.estimate, size = B, replace = TRUE))
+j <- (alpha/2) * B
+k <- (1-(alpha/2)) * B
+cat("95% CI for Hormone Group:", c(hormone.boot[j],hormone.boot[k]),"\n")
+cat("95% CI for Control Group:", c(control.boot[j],control.boot[k]),"\n")
+
+#part d: Permutation Tests
+# Use permutation tests to show that there is no difference between the mean recurrence times
+#Null hypothesis: the mean recurrence time between the two groups is equal
+R <- 1000 # number of permutation replicates
+x <- sort(hormone.estimate)
+y <- sort(control.estimate)
+z <- c(x,y)
+D <- numeric(R)
+D0 <- ks.test(x,y,exact = FALSE)$statistic
+K <- 1:length(z)
+options(warn = -1)
+for(i in 1:R){
+  k <- sample(K,size = length(hormone.rec),replace = FALSE)
+  x1 <- z[k] #hormone group
+  y1 <- z[-k] #control group
+  D[i] <- ks.test(x1,y1,exact = FALSE)$statistic
+}
+ks <- mean(c(D0,D) >= D0)
+options(warn = -1)
+ks
+#accept null hypothesis, reject alternative
 
 ```
 
