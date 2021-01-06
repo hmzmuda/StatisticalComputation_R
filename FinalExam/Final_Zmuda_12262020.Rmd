@@ -178,7 +178,7 @@ alpha = rep(0,N)
 beta = rep(0,N)
 mu = rep(0,N)
 lambda = rep(0,N)
-sigma = 1
+sigma = 2
 
 #functions
 log.likelihood <- function(alpha,beta,mu,lambda,x){
@@ -196,49 +196,67 @@ log.likelihood <- function(alpha,beta,mu,lambda,x){
       l = l + n*log(alpha + beta*exp(-mu) + (1-alpha-beta)*exp(-lambda))
     }
     else{
-      l = l + n*log(beta*(mu^e)*exp(-mu) + (1-alpha-beta)*exp(-lambda)*(lambda^e))-log(factorial(e))
+      l = l + n*log(beta*(mu^e)*exp(-mu) + (1-alpha-beta)*exp(-lambda)*(lambda^e))-n*log(factorial(e))
     }
   }
   return(l)
 }
-
-#initialize sample values i.e chains
-alpha[1] = rnorm(1,0,sigma)
-beta[1] = rnorm(1,0,sigma)
-mu[1] = rnorm(1,0,sigma)
-lambda[1] = rnorm(1,0,sigma)
-
-
-for(i in 2:N){
-
-  #sample from proposal distribution (symmetrical)
-  alpha.star <- rnorm(1,mean = alpha[i-1], sd = sigma)
-  beta.star <- rnorm(1,mean = beta[i-1], sd = sigma)
-  mu.star <- rnorm(1,mean = mu[i-1], sd = sigma)
-  lambda.star <- rnorm(1,mean = lambda[i-1], sd = sigma)
-  
-  print(c(alpha.star,beta.star,mu.star,lambda.star))
-
-  num <- log.likelihood(alpha.star,beta.star,mu.star,lambda.star,data)
-  dem <- log.likelihood(alpha[i-1],beta[i-1],mu[i-1],lambda[i-1],data)
-  ratio <- exp(num - dem)
-  accept.prob <- min(1,ratio)
-  U = runif(1)
-
-  if(U < accept.prob){
-    alpha[i] <- alpha.star
-    beta[i] <- beta.star
-    mu[i] <- mu.star
-    lambda[i] <- lambda.star
-  }
-  else{
-    alpha[i] <- alpha[i-1]
-    beta[i] <- beta[i-1]
-    mu[i] <- mu[i-1]
-    lambda[i] <- lambda[i-1]
-    reject = reject + 1
-  }
+pi_i <- function(alpha, beta, mu, lambda,i) {
+  if (i==0) return(alpha + beta * exp(-mu) + (1-alpha-beta)*exp(-lambda))
+  else return(beta* mu^i* exp(-mu) + (1-alpha-beta)* lambda^i *exp(-lambda))
 }
+LogL <- function(alpha, beta, mu, lambda,df){
+  sum <- 0
+  alpha = exp(alpha)/(1+exp(alpha))
+  beta = exp(beta)/(1+exp(beta))
+  mu = exp(mu)
+  lambda = exp(lambda)
+  for(i in length(df)){
+    sum <- sum + df[i] * (log(pi_i(alpha, beta, mu, lambda, i)) - log(factorial(i)))
+  }
+  return(sum)
+}
+
+# likelihood <- function{alpha,beta,mu,lambda}{
+#   
+# }
+# 
+# #initialize sample values i.e chains
+# alpha[1] = rnorm(1,3,sigma)
+# beta[1] = rnorm(1,3,sigma)
+# mu[1] = rnorm(1,3,sigma)
+# lambda[1] = rnorm(1,3,sigma)
+# 
+# for(i in 2:N){
+# 
+#   #sample from proposal distribution (symmetrical)
+#   alpha.star <- rnorm(1,mean = alpha[i-1], sd = sigma)
+#   beta.star <- rnorm(1,mean = beta[i-1], sd = sigma)
+#   mu.star <- rnorm(1,mean = mu[i-1], sd = sigma)
+#   lambda.star <- rnorm(1,mean = lambda[i-1], sd = sigma)
+# 
+#   print(c(alpha.star,beta.star,mu.star,lambda.star))
+# 
+#   num <- LogL(alpha.star,beta.star,mu.star,lambda.star,data$freq)
+#   dem <- LogL(alpha[i-1],beta[i-1],mu[i-1],lambda[i-1],data$freq)
+#   ratio <- exp(num - dem)
+#   accept.prob <- min(1,ratio)
+#   U = runif(1)
+# 
+#   if(U < accept.prob){
+#     alpha[i] <- alpha.star
+#     beta[i] <- beta.star
+#     mu[i] <- mu.star
+#     lambda[i] <- lambda.star
+#   }
+#   else{
+#     alpha[i] <- alpha[i-1]
+#     beta[i] <- beta[i-1]
+#     mu[i] <- mu[i-1]
+#     lambda[i] <- lambda[i-1]
+#     reject = reject + 1
+#   }
+# }
 # alpha = exp(alpha)/(1+exp(alpha))
 # beta = exp(beta)/(1+exp(beta))
 # mu = exp(mu)
@@ -270,6 +288,7 @@ $$ \propto Gamma(\theta | \Sigma \delta_i^c + \Sigma\delta_i^H + a + 1,\Sigma x_
 ```{r Problem 3}
 set.seed(12345)
 library(ggplot2)
+library(Rmisc)
 #initialize data sets
 hormone.rec <- c(2,4,6,9,9,9,13,14,18,23,31,32,33,34,43)
 lab.h.r <- rep(0,length(hormone.rec))
@@ -306,20 +325,10 @@ c = 60
 d = 120
 
 #FUNCTIONS
-prior <- function(theta,tau){
-  return((theta^a)*(tau^b)*exp(-c*theta - d*theta*tau))
-}
-posterior <- function(dat.control,dat.hormone,theta,tau){
-  one <- theta^(sum(dat.control$delta.c)+sum(dat.hormone$delta.h)+a)
-  two <- tau^(sum(dat.hormone$delta.h)+b)
-  three <- exp(-theta*sum(dat.control$x)-tau*theta*sum(dat.hormone$x))
-  four <- exp(-(c*theta)-(tau*d))
-  return(one*two*three*four)
-}
 gibbs <- function(dat.control,dat.hormone,n,burn,hyperparameter){
   mat <- matrix(ncol = 2, nrow = n)
-  tau <- 1
-  theta <- 2
+  tau <- 0.1
+  theta <- 0.1
   mat[1,] <- c(theta,tau)
   a <- hyperparameter[1]
   b <- hyperparameter[2]
@@ -341,16 +350,16 @@ gibbs <- function(dat.control,dat.hormone,n,burn,hyperparameter){
 
 gibby <- gibbs(dat.control,dat.hormone,1000,100,c(3,1,60,120))
 colMeans(gibby)
-gibbies <- gibbs(dat.control,dat.hormone,5000,1000,c(3,1,60,120))
+gibbies <- gibbs(dat.control,dat.hormone,5000,0,c(3,1,60,120))
 colMeans(gibbies)
 #Convergence diagnostics
 par(mfrow=c(2,2))
-plot(ts(gibby[,2]),main = "Tau from 1000 Iterations",ylab = "Tau")
-abline(h = mean(gibby[,2]),col = "red")
+plot(ts(gibbies[,1]),main = "Theta from 10000 Iterations",ylab = "Tau")
+abline(h = mean(gibbies[,1]),col = "red")
 plot(ts(gibbies[,2]),main = "Tau from 10000 Iterations",ylab = "Tau")
-abline(h = mean(gibby[,2]),col = "blue")
-hist(gibby[,2],40,main = "Tau from 1000 Iterations",xlab = "Tau Estimates")
-hist(gibbies[,2],100,main = "Tau from 10000 Iterations",xlab = "Tau Estimates")
+abline(h = mean(gibbies[,2]),col = "blue")
+hist(gibbies[,1],40,main = "Theta from 10000 Iterations",xlab = "Theta Estimates")
+hist(gibbies[,2],40,main = "Tau from 10000 Iterations",xlab = "Tau Estimates")
 
 #part d: summary statistics
 #marginal mean
@@ -358,26 +367,48 @@ marg.means <- colMeans(gibbies)
 #sd
 marg.sd <- c(sd(gibbies[,1]),sd(gibbies[,2]))
 #95% Confidence interval
-library(pastecs)
-stat.desc(gibbies)
+marg.ci.theta <- CI(gibbies[,1], ci = 0.95)
+marg.ci.tau <- CI(gibbies[,2], ci = 0.95)
+
+marg.stats <- matrix(c(marg.means[1],marg.means[2],marg.sd[1],marg.sd[2],marg.ci.theta[3],marg.ci.tau[3],marg.ci.theta[1],marg.ci.tau[1]),ncol = 2,byrow = TRUE)
+colnames(marg.stats) <- c("Theta","Tau")
+rownames(marg.stats) <- c("Marginal Mean", "Standard Deviation", "95% CI upper","95% CI lower")
+as.table(marg.stats)
 
 #part e: graphing the prior and posterior distributions
+#Posterior is the theta and tau estimates from above with the prior being a gamma distribution
 par(mfrow=c(1,1))
 c1 <- rgb(173,216,230,max = 255, alpha = 80, names = "lt.blue")
 c2 <- rgb(255,192,203, max = 255, alpha = 80, names = "lt.pink")
-hg.prior <- hist(prior(gibbies[,1],gibbies[,2]),breaks = 40,plot = FALSE)
-hg.posterior <- hist(posterior(dat.control,dat.hormone,gibbies[,1],gibbies[,2]),breaks = 40,plot = FALSE)
-plot(hg.prior, col = c1)
-plot(hg.posterior, col = c2,add = TRUE)
+theta.pos <- hist(gibbies[,1],breaks = 40,plot = FALSE)
+tau.pos <- hist(gibbies[,2],breaks = 40,plot = FALSE)
+theta.prior <- hist(dexp(quantile(gibbies[,1])),breaks = 40,plot = FALSE)
+tau.prior <- hist(dgamma(quantile(gibbies[,2]),shape = 1 + 1 + sum(dat.hormone$delta.h),rate = gibbies[,1]*sum(dat.hormone$x) + (gibbies[,1]*120)),breaks = 40,plot = FALSE)
+                  
+plot(tau.pos, col = c1, main = "Histogram of Tau Posterior and Prior")
+plot(tau.prior, col = c2, add = TRUE)
+
+#part f: Interpreting result for the drug company
 
 #part g: sensitivity analysis
 hyp.half <- gibbs(dat.control,dat.hormone,10000,2500,c(1.5,2,30,60))
-colMeans(hyp.half)
-hyp.dou <- gibbs(dat.control,dat.hormone,10000,2500,c(6,0.5,120,240))
-colMeans(hyp.dou)
+half.mean <- colMeans(hyp.half)
+half.sd <- c(sd(hyp.half[,1]),sd(hyp.half[,2]))
+half.ci.theta <- CI(hyp.half[,1], ci = 0.95)
+half.ci.tau <- CI(hyp.half[,2], ci = 0.95)
 
-stat.desc(hyp.half)
-stat.desc(hyp.dou)
+hyp.dou <- gibbs(dat.control,dat.hormone,10000,2500,c(6,0.5,120,240))
+dou.mean <- colMeans(hyp.dou)
+dou.sd <- c(sd(hyp.dou[,1]),sd(hyp.dou[,2]))
+dou.ci.theta <- CI(hyp.dou[,1], ci = 0.95)
+dou.ci.tau <- CI(hyp.dou[,2], ci = 0.95)
+
+#Summary statistics based on hyperparameters
+hyp.table <- matrix(c(half.mean[1],half.mean[2],dou.mean[1],dou.mean[2],half.sd[1],half.sd[2],dou.sd[1],dou.sd[2],half.ci.theta[3],half.ci.tau[3],dou.ci.theta[3],dou.ci.tau[3],half.ci.theta[1],half.ci.tau[1],dou.ci.theta[1],dou.ci.tau[1]),ncol = 4,byrow = TRUE)
+colnames(hyp.table) <- c("Theta, Halved", "Tau, Halved","Theta, Doubled", "Tau Doubled")
+rownames(hyp.table) <- c("Marginal Mean", "Standard Deviation","CI 95% Lower","CI 95% Upper")
+as.table(hyp.table)
+
 
 ```
 ## part f and g:
@@ -390,6 +421,7 @@ For the hyperparameters, we can see from the table of summary statistics, that c
 # Problem 4
 ```{r Problem 4}
 set.seed(475)
+
 #part b: mean recurrence time
 m.r.h <- mean(hormone.rec)
 m.r.c <- mean(control.rec)
@@ -419,47 +451,48 @@ cat("95% CI for Hormone Group:", c(means.hormone[j],means.hormone[k]),"\n")
 cat("95% CI for Control Group:", c(means.control[j],means.control[k]),"\n")
 
 #part d: Permutation Tests
+#make recurrence data into a data frame
+recur <- c(hormone.rec,control.rec)
+id.recur <- c(rep(1,length(hormone.rec)),rep(2,length(control.rec)))
+df <- data.frame(recur,id.recur)
 # Use permutation tests to show that there is no difference between the mean recurrence times
 #Null hypothesis: the mean recurrence time between the two groups is equal
-R <- 1000 # number of permutation replicates
-x <- sort(hormone.estimate)
-y <- sort(control.estimate)
-z <- c(x,y)
-D <- numeric(R)
-D0 <- ks.test(x,y,exact = FALSE)$statistic
-K <- 1:length(z)
-options(warn = -1)
-for(i in 1:R){
-  k <- sample(K,size = length(hormone.rec),replace = FALSE)
-  x1 <- z[k] #hormone group
-  y1 <- z[-k] #control group
-  D[i] <- ks.test(x1,y1,exact = FALSE)$statistic
+P <- 2000 #number of permutations
+theta.h <- mean(df[df$id.recur == 1,1])
+theta.c <- mean(df[df$id.recur == 2,1])
+obs.diff.mean <- theta.h - theta.c
+res.diff.mean <- rep(0,P)
+for(p in 1:P){
+  perm <- sample(nrow(df))
+  dat <- transform(df, id.recur = id.recur[perm])
+  theta.h <- mean(df[df$id.recur == 1,1])
+  theta.c <- mean(df[df$id.recur == 2,1])
+  res.diff.mean[p] <- theta.h - theta.c
 }
-ks <- mean(c(D0,D) >= D0)
-options(warn = -1)
-ks
-#accept null hypothesis, reject alternative
+hist(res.diff.mean, breaks = 25, col = "gray", main = "Permutation Test for Difference of the Means")
+abline(v = obs.diff.mean, col = "red")
+
+quantile(res.diff.mean,probs = c(0.025,0.975))
+obs.diff.mean
 
 ```
 
 \newpage 
 # Problem 5
 ```{r Problem 5}
-set.seed(775)
+set.seed(1000)
 n <- 1000 #sample size
 comp <- sample(1:2, prob = c(0.8,0.2), size = n, replace = TRUE)
-mix <- 0.8*rnorm(n,0,1) + 0.2*rnorm(n,3,1)
 mu = c(0,3)
-stan.dev = c(1,1)
+stan.dev = sqrt(c(1,1))
 samp <- rnorm(n, mean = mu[comp], sd = stan.dev[comp])
 
 h1 <- 1.06*(n^(-1/5))*sd(samp)
 h2 <- 0.9*(n^(-1/5))*min(sd(samp),(IQR(samp))/1.34)
-k.gauss <- function(t){return((1/sqrt(2*pi))*-0.5*t^2)}
 
 plot(density(samp),col = 1,main = "Gaussian Kernel Density", lwd = 2) #true density estimate
-lines(density(samp, bw = h1, kernel = "gaussian"),col = 2)
-lines(density(samp, bw =h2, kernel = "gaussian"),col = 3)
+lines(density(samp, bw = h1),col = 2)
+lines(density(samp, bw =h2),col = 3)
 legend("topright",c("True Density Mixture","h1 Bandwidth","h2 Bandwidth"),lty=1,col=1:3)
 
 #part b
