@@ -308,23 +308,41 @@ b = 1
 c = 60
 d = 120
 
-gibbs <- function(dat.control,dat.hormone,n){
+#FUNCTIONS
+prior <- function(theta,tau){
+  return((theta^a)*(tau^b)*exp(-c*theta - d*theta*tau))
+}
+
+posterior <- function(dat.control,dat.hormone,theta,tau){
+  one <- theta^(sum(dat.control$delta.c)+sum(dat.hormone$delta.h)+a)
+  two <- tau^(sum(dat.hormone$delta.h)+b)
+  three <- exp(-theta*sum(dat.control$x)-tau*theta*sum(dat.hormone$x))
+  four <- exp(-(c*theta)-(tau*d))
+  return(one*two*three*four)
+}
+
+gibbs <- function(dat.control,dat.hormone,n,burn,hyperparameter){
   mat <- matrix(ncol = 2, nrow = n)
   tau <- 0
   theta <- 0
   mat[1,] <- c(theta,tau)
+  a <- hyperparameter[1]
+  b <- hyperparameter[2]
+  c <- hyperparameter[3]
+  d <- hyperparameter[4]
   for(i in 2:n){
     theta <- rgamma(1,shape = a+1+sum(dat.control$delta.c)+sum(dat.hormone$delta.h),rate = sum(dat.control$x)+tau*sum(dat.hormone$x)+c+d*tau)
     tau <- rgamma(1,shape = b+1+sum(dat.hormone$delta.h),theta*sum(dat.hormone$x)+theta*d)
     mat[i,] <- c(theta,tau)
   }
-  return(mat)
+  burn <- burn + 1
+  return(mat[burn:n,])
 }
 
-gibby <- gibbs(dat.control,dat.hormone,1000)
-c(mean(gibby[,1]),mean(gibby[,2]))
-gibbies <- gibbs(dat.control,dat.hormone,10000)
-c(mean(gibbies[,1]),mean(gibbies[,2]))
+gibby <- gibbs(dat.control,dat.hormone,1000,100,c(a,b,c,d))
+colMeans(gibby)
+gibbies <- gibbs(dat.control,dat.hormone,10000,2500,c(a,b,c,d))
+colMeans(gibbies)
 #Convergence diagnostics
 par(mfrow=c(2,2))
 plot(ts(gibby[,2]),main = "Tau from 1000 Iterations",ylab = "Tau")
@@ -334,11 +352,42 @@ abline(h = mean(gibby[,2]),col = "blue")
 hist(gibby[,2],40,main = "Tau from 1000 Iterations",xlab = "Tau Estimates")
 hist(gibbies[,2],100,main = "Tau from 10000 Iterations",xlab = "Tau Estimates")
 
+#part d: summary statistics
+library(pastecs)
+stat.desc(gibbies)
+
+#part e: graphing the prior and posterior distributions
+par(mfrow=c(1,1))
+c1 <- rgb(173,216,230,max = 255, alpha = 80, names = "lt.blue")
+c2 <- rgb(255,192,203, max = 255, alpha = 80, names = "lt.pink")
+hg.prior <- hist(prior(gibbies[,1],gibbies[,2]),breaks = 40,plot = FALSE)
+hg.posterior <- hist(posterior(dat.control,dat.hormone,gibbies[,1],gibbies[,2]),breaks = 40,plot = FALSE)
+plot(hg.prior, col = c1)
+plot(hg.posterior, col = c2,add = TRUE)
+
+#part g: sensitivity analysis
+hyp.half <- gibbs(dat.control,dat.hormone,10000,2500,c(1.5,2,30,60))
+colMeans(hyp.half)
+hyp.dou <- gibbs(dat.control,dat.hormone,10000,2500,c(6,0.5,120,240))
+colMeans(hyp.dou)
+
+stat.desc(hyp.half)
+stat.desc(hyp.dou)
 
 ```
+## part f and g:
+
+Based on the summary statistics produced in part d, I would say that the recurrence times are not statistically significant from the control group. This would mean that the clinical trial was not a huge success because the drug has very little affect on combating recurring episodes of breast cancer.
+
+For the hyperparameters, we can see from the table of summary statistics, that changing the hyperparameters affects our tau term more than the theta term. This can be seen in the 95% CI. This would be important to understand where these numbers come from and how to better estimate them before completing another clinical trial, because the hyperparameters could affect whether the drug is (statistically) effective.
 
 \newpage 
 # Problem 4
+```{r Problem 4}
+set.seed(475)
+
+
+```
 
 \newpage 
 # Problem 5
