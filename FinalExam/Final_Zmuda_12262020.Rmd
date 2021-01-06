@@ -178,8 +178,7 @@ alpha = rep(0,N)
 beta = rep(0,N)
 mu = rep(0,N)
 lambda = rep(0,N)
-minn = -1
-maxx = 1
+sigma = 1
 
 #functions
 log.likelihood <- function(alpha,beta,mu,lambda,x){
@@ -187,8 +186,8 @@ log.likelihood <- function(alpha,beta,mu,lambda,x){
   #reparameterization
   alpha = exp(alpha)/(1+exp(alpha))
   beta = exp(beta)/(1+exp(beta))
-  mu = exp(mu)/(1+exp(mu))
-  lambda = exp(lambda)/(1+exp(lambda))
+  mu = exp(mu)
+  lambda = exp(lambda)
   for(i in 1:length(x$enc))
   {
     e = x$enc[i]
@@ -197,19 +196,18 @@ log.likelihood <- function(alpha,beta,mu,lambda,x){
       l = l + n*log(alpha + beta*exp(-mu) + (1-alpha-beta)*exp(-lambda))
     }
     else{
-      l =l + n*log(beta*(mu^e)*exp(-mu) + (1-alpha-beta)*exp(-lambda)*lambda^e)-log(factorial(e))
+      l = l + n*log(beta*(mu^e)*exp(-mu) + (1-alpha-beta)*exp(-lambda)*(lambda^e))-log(factorial(e))
     }
   }
   return(l)
 }
 
 #initialize sample values i.e chains
-alpha[1] = rnorm(1,0,1)
-beta[1] = rnorm(1,0,1)
-mu[1] = rnorm(1,0,1)
-lambda[1] = rnorm(1,0,1)
-sigma = 1
-i = 1
+alpha[1] = rnorm(1,0,sigma)
+beta[1] = rnorm(1,0,sigma)
+mu[1] = rnorm(1,0,sigma)
+lambda[1] = rnorm(1,0,sigma)
+
 
 for(i in 2:N){
 
@@ -218,6 +216,7 @@ for(i in 2:N){
   beta.star <- rnorm(1,mean = beta[i-1], sd = sigma)
   mu.star <- rnorm(1,mean = mu[i-1], sd = sigma)
   lambda.star <- rnorm(1,mean = lambda[i-1], sd = sigma)
+  
   print(c(alpha.star,beta.star,mu.star,lambda.star))
 
   num <- log.likelihood(alpha.star,beta.star,mu.star,lambda.star,data)
@@ -226,7 +225,7 @@ for(i in 2:N){
   accept.prob <- min(1,ratio)
   U = runif(1)
 
-  if(U <= accept.prob){
+  if(U < accept.prob){
     alpha[i] <- alpha.star
     beta[i] <- beta.star
     mu[i] <- mu.star
@@ -240,10 +239,10 @@ for(i in 2:N){
     reject = reject + 1
   }
 }
-alpha = exp(alpha)/(1+exp(alpha))
-beta = exp(beta)/(1+exp(beta))
-mu = exp(mu)
-lambda = exp(lambda)
+# alpha = exp(alpha)/(1+exp(alpha))
+# beta = exp(beta)/(1+exp(beta))
+# mu = exp(mu)
+# lambda = exp(lambda)
 c(mean(alpha),mean(beta),mean(mu),mean(lambda))
 print("Rejection Rate:")
 100*(reject/N)
@@ -297,8 +296,8 @@ ggplot(cancer.dat,aes(x = dat.df, fill = list.id, color = list.id))+ geom_histog
 
 #part c: Gibbs Sampler
 #Initialize and prepare recurrence and censored data based on patient group
-delta.h <- c(rep(1,length(hormone.rec)),rep(0,length(hormone.cens)))
-delta.c <- c(rep(1,length(control.rec)),rep(0,length(control.cens)))
+delta.h <- c(rep(0,length(hormone.rec)),rep(1,length(hormone.cens)))
+delta.c <- c(rep(0,length(control.rec)),rep(1,length(control.cens)))
 dat.hormone <- data.frame(x = c(hormone.rec,hormone.cens),delta.h)
 dat.control <- data.frame(x = c(control.rec,control.cens),delta.c)
 a = 3
@@ -310,7 +309,6 @@ d = 120
 prior <- function(theta,tau){
   return((theta^a)*(tau^b)*exp(-c*theta - d*theta*tau))
 }
-
 posterior <- function(dat.control,dat.hormone,theta,tau){
   one <- theta^(sum(dat.control$delta.c)+sum(dat.hormone$delta.h)+a)
   two <- tau^(sum(dat.hormone$delta.h)+b)
@@ -318,7 +316,6 @@ posterior <- function(dat.control,dat.hormone,theta,tau){
   four <- exp(-(c*theta)-(tau*d))
   return(one*two*three*four)
 }
-
 gibbs <- function(dat.control,dat.hormone,n,burn,hyperparameter){
   mat <- matrix(ncol = 2, nrow = n)
   tau <- 1
@@ -409,6 +406,7 @@ cat("Mean Recurrence Time for Control Group", mean(control.estimate), "\n")
 
 #part c:
 B = 1000 #Bootstrap Iteration
+alpha <- 0.05
 hormone.boot <- sort(sample(hormone.estimate, size = B, replace = TRUE))
 control.boot <- sort(sample(control.estimate, size = B, replace = TRUE))
 j <- (alpha/2) * B
