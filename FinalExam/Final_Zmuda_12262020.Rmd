@@ -353,6 +353,11 @@ hist(gibby[,2],40,main = "Tau from 1000 Iterations",xlab = "Tau Estimates")
 hist(gibbies[,2],100,main = "Tau from 10000 Iterations",xlab = "Tau Estimates")
 
 #part d: summary statistics
+#marginal mean
+marg.means <- colMeans(gibbies)
+#sd
+marg.sd <- c(sd(gibbies[,1]),sd(gibbies[,2]))
+#95% Confidence interval
 library(pastecs)
 stat.desc(gibbies)
 
@@ -385,6 +390,7 @@ For the hyperparameters, we can see from the table of summary statistics, that c
 # Problem 4
 ```{r Problem 4}
 set.seed(475)
+#part b: mean recurrence time
 
 
 ```
