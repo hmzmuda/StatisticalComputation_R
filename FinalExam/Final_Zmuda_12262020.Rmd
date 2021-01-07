@@ -315,8 +315,8 @@ ggplot(cancer.dat,aes(x = dat.df, fill = list.id, color = list.id))+ geom_histog
 
 #part c: Gibbs Sampler
 #Initialize and prepare recurrence and censored data based on patient group
-delta.h <- c(rep(0,length(hormone.rec)),rep(1,length(hormone.cens)))
-delta.c <- c(rep(0,length(control.rec)),rep(1,length(control.cens)))
+delta.h <- c(rep(1,length(hormone.rec)),rep(0,length(hormone.cens)))
+delta.c <- c(rep(1,length(control.rec)),rep(0,length(control.cens)))
 dat.hormone <- data.frame(x = c(hormone.rec,hormone.cens),delta.h)
 dat.control <- data.frame(x = c(control.rec,control.cens),delta.c)
 a = 3
@@ -383,12 +383,16 @@ c2 <- rgb(255,192,203, max = 255, alpha = 80, names = "lt.pink")
 theta.pos <- hist(gibbies[,1],breaks = 40,plot = FALSE)
 tau.pos <- hist(gibbies[,2],breaks = 40,plot = FALSE)
 theta.prior <- hist(dexp(quantile(gibbies[,1])),breaks = 40,plot = FALSE)
-tau.prior <- hist(dgamma(quantile(gibbies[,2]),shape = 1 + 1 + sum(dat.hormone$delta.h),rate = gibbies[,1]*sum(dat.hormone$x) + (gibbies[,1]*120)),breaks = 40,plot = FALSE)
+tau.prior <- hist(dgamma(quantile(gibbies[,2]),shape = 1 + 1 + sum(dat.hormone$delta.h),rate = gibbies[,1]*sum(dat.hormone$x) + (gibbies[,1]*120)),breaks = 120,plot = FALSE)
                   
-plot(tau.pos, col = c1, main = "Histogram of Tau Posterior and Prior")
+plot(tau.pos, col = c1, main = "Histogram of Tau Posterior and Prior", ylim = range(1:750))
 plot(tau.prior, col = c2, add = TRUE)
 
 #part f: Interpreting result for the drug company
+# Linear regression model to compare the theta and tau
+scatter.smooth(gibbies[,2],gibbies[,1], xlab = "Theta",ylab = "Tau",main = "Theta ~ Tau")
+cor(gibbies[,2],gibbies[,1])
+#inverse correlation, indicating that there is not 
 
 #part g: sensitivity analysis
 hyp.half <- gibbs(dat.control,dat.hormone,10000,2500,c(1.5,2,30,60))
@@ -451,24 +455,23 @@ cat("95% CI for Hormone Group:", c(means.hormone[j],means.hormone[k]),"\n")
 cat("95% CI for Control Group:", c(means.control[j],means.control[k]),"\n")
 
 #part d: Permutation Tests
-#make recurrence data into a data frame
-recur <- c(hormone.rec,control.rec)
-id.recur <- c(rep(1,length(hormone.rec)),rep(2,length(control.rec)))
-df <- data.frame(recur,id.recur)
 # Use permutation tests to show that there is no difference between the mean recurrence times
 #Null hypothesis: the mean recurrence time between the two groups is equal
 P <- 2000 #number of permutations
-theta.h <- mean(df[df$id.recur == 1,1])
-theta.c <- mean(df[df$id.recur == 2,1])
-obs.diff.mean <- theta.h - theta.c
+est <- c(control.estimate,hormone.estimate)
+id <- c(rep(0,length(control.estimate)),rep(1,length(hormone.estimate)))
+df <- data.frame(est,id)
+theta.h <- mean(df[df$id == 1,1])
+theta.c <- mean(df[df$id == 0,1])
 res.diff.mean <- rep(0,P)
 for(p in 1:P){
   perm <- sample(nrow(df))
-  dat <- transform(df, id.recur = id.recur[perm])
-  theta.h <- mean(df[df$id.recur == 1,1])
-  theta.c <- mean(df[df$id.recur == 2,1])
+  dat <- transform(df, id = id[perm])
+  theta.h <- mean(dat[dat$id == 1,"est"])
+  theta.c <- mean(dat[dat$id == 0,"est"])
   res.diff.mean[p] <- theta.h - theta.c
 }
+obs.diff.mean <- theta.h - theta.c
 hist(res.diff.mean, breaks = 25, col = "gray", main = "Permutation Test for Difference of the Means")
 abline(v = obs.diff.mean, col = "red")
 
