@@ -417,7 +417,7 @@ as.table(hyp.table)
 ```
 ## part f and g:
 
-Based on the summary statistics produced in part d, I would say that the recurrence times are not statistically significant from the control group. This would mean that the clinical trial was not a huge success because the drug has very little affect on combating recurring episodes of breast cancer.
+Based on the summary statistics produced in part d, I would say that the recurrence times are not statistically significant from the control group. This would mean that the clinical trial was not a huge success because the drug has very little affect on combating recurring episodes of breast cancer. We can see from the linear regression graph and the correlation output (-0.6475986) that the two parameters are inversely related.
 
 For the hyperparameters, we can see from the table of summary statistics, that changing the hyperparameters affects our tau term more than the theta term. This can be seen in the 95% CI. This would be important to understand where these numbers come from and how to better estimate them before completing another clinical trial, because the hyperparameters could affect whether the drug is (statistically) effective.
 
