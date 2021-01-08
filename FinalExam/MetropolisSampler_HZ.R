@@ -155,3 +155,59 @@ for(i in 2:10000){
 }
 
 
+mean.a <- rep(0,B)
+mean.b <- rep(0,B)
+mean.m <- rep(0,B)
+mean.l <- rep(0,B)
+t.a <- rep(0,B)
+t.b <- rep(0,B)
+t.m <- rep(0,B)
+t.l <- rep(0,B)
+samp.a <- rep(0,N)
+samp.b <- rep(0,N)
+samp.m <- rep(0,N)
+samp.l <- rep(0,N)
+obs.a <- mean(chain[,1])
+obs.b <- mean(chain[,2])
+obs.m <- mean(chain[,3])
+obs.l <- mean(chain[,4])
+for(i in 1:B){
+  samp.a <- y.a[sample(1:N, replace = TRUE)]
+  samp.b <- y.b[sample(1:N, replace = TRUE)]
+  samp.m <- y.m[sample(1:N, replace = TRUE)]
+  samp.l <- y.l[sample(1:N, replace = TRUE)]
+  mean.a[i] <- mean(samp.a)
+  mean.b[i] <- mean(samp.b)
+  mean.m[i] <- mean(samp.m)
+  mean.l[i] <- mean(samp.l)
+  var.a <- (1/mean.a[i])*(sd(samp.a)^2)
+  var.b <- (1/mean.b[i])*(sd(samp.b)^2)
+  var.m <- (1/mean.m[i])*(sd(samp.m)^2)
+  var.l <- (1/mean.l[i])*(sd(samp.l)^2)
+  t.a[i] <- (mean.a[i] - obs.a)/(sqrt(var.a))
+  t.b[i] <- (mean.b[i] - obs.b)/(sqrt(var.b))
+  t.m[i] <- (mean.m[i] - obs.m)/(sqrt(var.m))
+  t.l[i] <- (mean.l[i] - obs.l)/(sqrt(var.l))
+}
+#bootstrap percentile
+j <- (alpha/2) * B
+k <- (1-(alpha/2)) * B
+mean.a <- sort(mean.a)
+mean.b <- sort(mean.b)
+mean.m <- sort(mean.m)
+mean.l <- sort(mean.l)
+marg.stats <- matrix(c(mean.a[j],mean.a[k],mean.b[j],mean.b[k],mean.m[j],mean.m[k],mean.l[j],mean.l[k]),ncol = 2,byrow = TRUE)
+colnames(marg.stats) <- c("Lower","Upper")
+rownames(marg.stats) <- c("Alpha perc CI", "Beta perc CI", "Mu perc CI","Lambda perc CI")
+as.table(marg.stats)
+#bootstrap t
+a.t <- c(mean(mean.a) - quantile(t.a,0.025,na.rm = TRUE)*sd(mean.a), (mean(mean.a) - quantile(t.a,0.975,na.rm = TRUE)*sd(mean.a)))
+b.t <- c(mean(mean.b) - quantile(t.b,0.025,na.rm = TRUE)*sd(mean.b), (mean(mean.b) - quantile(t.b,0.975,na.rm = TRUE)*sd(mean.b)))
+m.t <- c(mean(mean.m) - quantile(t.m,0.025,na.rm = TRUE)*sd(mean.m), (mean(mean.m) - quantile(t.m,0.975,na.rm = TRUE)*sd(mean.m)))
+l.t <- c(mean(mean.l) - quantile(t.l,0.025,na.rm = TRUE)*sd(mean.l), (mean(mean.l) - quantile(t.l,0.975,na.rm = TRUE)*sd(mean.l)))
+print("Studentized t bootsrap")
+a.t #alpha
+b.t #beta
+m.t #mu
+l.t #lambda
+
