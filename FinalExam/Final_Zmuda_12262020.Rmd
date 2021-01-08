@@ -7,6 +7,8 @@ output: pdf_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE,tidy.opts=list(width.cutoff=60),tidy=TRUE)
+library(ggplot2)
+library(Rmisc)
 ```
 
 # Problem 1
@@ -17,20 +19,25 @@ To find the updated parameters (i.e. the maximized value) we fist need to find t
 Given the observed likelihood, we can compute the complete likelihood to be:
 $$L(\theta | n_{k,i}) = \Pi^{16}_{i = 0}\frac{[\pi_i(\theta)]^{(n_i)}}{i!}$$
 Given the likelihood equation, we can work out the log likelihood to be:
-$$log[L(\theta | n_{k,i})] = \Sigma^{16}_{i = 0} n_ilog(\alpha 1_{i = 0} + \beta \mu^i e^{-\mu} + (1-\alpha-\beta)\lambda^ie^{-\lambda}))$$
-$$(n_i)[log(\alpha 1_{i = 0}) + log(\beta \mu^i e^{-\mu}) + log((1-\alpha-\beta)\lambda^ie^{-\lambda})] + $$
-$$(p_i)[log(\alpha 1_{i = 0}) + log(\beta \mu^i e^{-\mu}) + log((1-\alpha-\beta)\lambda^ie^{-\lambda})] - log(i!)$$
-where $y$ is the complete data set and $z_0,t_i, p_i$ represent three different groups. These are further broken down into the zero, typical, and promiscuous groups.
+$$log[L(\theta | n_{k,i})] = \Sigma^{16}_{i = 0} n_{k,i}log(\alpha 1_{i = 0} + \beta \mu^i e^{-\mu} + (1-\alpha-\beta)\lambda^ie^{-\lambda}))$$
+where $y$ is the complete data set and $n_{k,i}$ represent the number of the three different groups. These are further broken down into the zero, typical, and promiscuous groups.
 To find your Q-function, take the expectation of the log likelihood function:
+$$E(n_{z,0} | n_{t,0},n_{p,0},\theta^{(t)}) = \Sigma^{16}_{i = 0} \frac{z_0(\theta^{(t)})}{n_0z_0(\theta^{(t)}) + n_0t_0(\theta^{(t)}) + n_0p_0(\theta^{(t)})} = z_0^{(t)}(\theta^{(t)})$$
+$$E(n_{t,i} | n_{z,i},n_{p,i},\theta^{(t)}) = \Sigma^{16}_{i = 0} \frac{t_i(\theta^{(t)})}{n_it_i(\theta^{(t)}) + n_ip_i(\theta^{(t)})} = t_i^{(t)}(\theta^{(t)})$$
+$$E(n_{p,i} | n_{z,i},n_{t,i},\theta^{(t)}) = \Sigma^{16}_{i = 0} \frac{p_i(\theta^{(t)})}{n_it_i(\theta^{(t)}) + n_ip_i(\theta^{(t)})} = p_i^{(t)}(\theta^{(t)})$$
 
-$$Q(\theta | \theta^{(t)}) = n_{z,0}^{(t)}\Sigma_{i = 0}^{16}log(\alpha 1_{i = 0}) + n_{t,i}^{(t)}\Sigma_{i = 0}^{16}log(\beta \mu^i exp(-\mu)) + n_{p,i}^{(t)}\Sigma_{i = 0}^{16}log((1-\alpha-\beta)\lambda^iexp(\lambda))$$
+$$Q(\theta | \theta^{(t)}) = n_{z,0}^{(t)}\Sigma_{i = 0}^{16}log(\alpha 1_{i = 0}) + n_{t,i}^{(t)}\Sigma_{i = 0}^{16}log(\beta \mu^i exp(-\mu)) + n_{p,i}^{(t)}\Sigma_{i = 0}^{16}log((1-\alpha-\beta)\lambda^iexp(\lambda)) - n_{i}log(i!)$$
 **M step:**
 For the M step of the EM algorithm, we need to maximize the Q function in regard to each parameter then set it equal to zero.
 
 When the derivative is set equal to zero, we find that the updated parameters equal to what we expected:
+$$\frac{\partial Q(\theta | \theta^{(t)})}{\partial \alpha^{(t)}} = 0$$
 $$\alpha^{(t+1)} = \frac{n_0z_0({\theta^{(t)}t})}{N}$$
+$$\frac{\partial Q(\theta | \theta^{(t)})}{\partial \beta^{(t)}} = 0$$
 $$\beta^{(t+1)} = \Sigma^{16}_{i=0} \frac{n_it_i(\theta^{(t)})}{N}$$
+$$\frac{\partial Q(\theta | \theta^{(t)})}{\partial \mu^{(t)}} = \frac{n_it(\theta^{(t)})}{n_it(\theta^{(t)})}\frac{-\mu-i}{\mu} = 0$$
 $$\mu^{(t+1)} = \frac{\Sigma^{16}_{i=0} i n_i t_i(\theta^{(t)})}{\Sigma^{16}_{i = 0}n_it_i(\theta^{(t)})}$$
+$$\frac{\partial Q(\theta | \theta^{(t)})}{\partial \lambda^{(t)}} = \frac{n_ip(\theta^{(t)})}{n_ip(\theta^{(t)})}\frac{-\lambda^{(t)}-i}{\lambda^{(t)}} = 0$$
 $$\lambda^{(t+1)} = \frac{\Sigma^{16}_{i=0} i n_i p_i(\theta^{(t)})}{\Sigma^{16}_{i = 0}n_ip_i(\theta^{(t)})}$$
 
 ## part b and c
@@ -154,6 +161,7 @@ for(j in 1:B){
   result.boot <- rbind(result.boot,param)
 }
 result.boot[B,]
+c(sd(result.boot[,1])/sqrt(B),sd(result.boot[,2])/sqrt(B),sd(result.boot[,3])/sqrt(B),sd(result.boot[,4])/sqrt(B))
 cov(result.boot) #covariance matrix to show standard error
 #pairwise correlation
 cor(result.boot)
@@ -163,9 +171,9 @@ cor(result.boot)
 
 # Problem 2
 ## part a: Metropolis and M-H Algorithm
-We are seeking to estimate $\alpha, \beta, \mu, \lambda$ using the Metropolis Algorithm.
+We are seeking to estimate $\alpha, \beta, \mu, \lambda$ using the Metropolis Sampler and Metropolis-Hastings Algorithm.
 
-Because the proposal distribution is symmetric, it can be canceled out in the ratio calculation, and we can then focus on the ratio of the target distribution with theta star and the previous theta value.
+Because the proposal distribution is symmetric, it can be canceled out in the ratio calculation, and we can then focus on the ratio of the target distribution with proposed values based on the value in the previous chain and the previous values and chain.
 
 ## part 2: MCMH
 
@@ -226,7 +234,9 @@ options(warn = -1)
 c(mean(chain[,1]),mean(chain[,2]),mean(chain[,3]),mean(chain[,4]))
 print("Rejection Rate:")
 100*(reject/count)
+```
 
+```{r part d for 2a}
 #Part d: Bootstrap the variances
   #Estimate th estimate of the variances
   #(1/B-1)*sum(var(sample median) - mL), mL = 1/B * sum(var(sample median))
@@ -252,10 +262,69 @@ for(k in 1:B){
 var.boot <- c((1/(B-1))*sum((mN.a - mean(mN.a))^2),(1/(B-1))*sum((mN.b - mean(mN.b))^2),(1/(B-1))*sum((mN.m - mean(mN.m))^2),(1/(B-1))*sum((mN.l - mean(mN.l))^2))
 
 cat("Variance Estimate from bootstrap",var.boot,"\n")
+```
+The variance estimates from the Metropolis algorithm are smaller than the standard error from part 1c. This could be becuase the MCMC is more accurate in estimating parameters than the EM algorithm. But they could also be smaller becuase the chain did not explore a large sample space and instead stayed in a smaller space during each chain iteration. This can happen when the proposal distribution has a realatively small range or small sigma value. While it might converge faster, the estimates will be less accurate.
 
-
+```{r 2e for part a}
 #Part e: Bootstrap 95% CI
-#bootstrap percentile, student, BCAa 95% CI
+mean.a <- rep(0,B)
+mean.b <- rep(0,B)
+mean.m <- rep(0,B)
+mean.l <- rep(0,B)
+t.a <- rep(0,B)
+t.b <- rep(0,B)
+t.m <- rep(0,B)
+t.l <- rep(0,B)
+samp.a <- rep(0,N)
+samp.b <- rep(0,N)
+samp.m <- rep(0,N)
+samp.l <- rep(0,N)
+obs.a <- mean(chain[,1])
+obs.b <- mean(chain[,2])
+obs.m <- mean(chain[,3])
+obs.l <- mean(chain[,4])
+for(i in 1:B){
+  samp.a <- y.a[sample(1:N, replace = TRUE)]
+  samp.b <- y.b[sample(1:N, replace = TRUE)]
+  samp.m <- y.m[sample(1:N, replace = TRUE)]
+  samp.l <- y.l[sample(1:N, replace = TRUE)]
+  mean.a[i] <- mean(samp.a)
+  mean.b[i] <- mean(samp.b)
+  mean.m[i] <- mean(samp.m)
+  mean.l[i] <- mean(samp.l)
+  var.a <- (1/mean.a[i])*(sd(samp.a)^2)
+  var.b <- (1/mean.b[i])*(sd(samp.b)^2)
+  var.m <- (1/mean.m[i])*(sd(samp.m)^2)
+  var.l <- (1/mean.l[i])*(sd(samp.l)^2)
+  t.a[i] <- (mean.a[i] - obs.a)/(sqrt(var.a))
+  t.b[i] <- (mean.b[i] - obs.b)/(sqrt(var.b))
+  t.m[i] <- (mean.m[i] - obs.m)/(sqrt(var.m))
+  t.l[i] <- (mean.l[i] - obs.l)/(sqrt(var.l))
+}
+#bootstrap percentile
+j <- (alpha/2) * B
+k <- (1-(alpha/2)) * B
+mean.a <- sort(mean.a)
+mean.b <- sort(mean.b)
+mean.m <- sort(mean.m)
+mean.l <- sort(mean.l)
+marg.stats <- matrix(c(mean.a[j],mean.a[k],mean.b[j],mean.b[k],mean.m[j],mean.m[k],mean.l[j],mean.l[k]),ncol = 2,byrow = TRUE)
+colnames(marg.stats) <- c("Lower","Upper")
+rownames(marg.stats) <- c("Alpha perc CI", "Beta perc CI", "Mu perc CI","Lambda perc CI")
+as.table(marg.stats)
+#bootstrap t
+a.t <- c(mean(mean.a) - quantile(t.a,0.025,na.rm = TRUE)*sd(mean.a), (mean(mean.a) - quantile(t.a,0.975,na.rm = TRUE)*sd(mean.a)))
+b.t <- c(mean(mean.b) - quantile(t.b,0.025,na.rm = TRUE)*sd(mean.b), (mean(mean.b) - quantile(t.b,0.975,na.rm = TRUE)*sd(mean.b)))
+m.t <- c(mean(mean.m) - quantile(t.m,0.025,na.rm = TRUE)*sd(mean.m), (mean(mean.m) - quantile(t.m,0.975,na.rm = TRUE)*sd(mean.m)))
+l.t <- c(mean(mean.l) - quantile(t.l,0.025,na.rm = TRUE)*sd(mean.l), (mean(mean.l) - quantile(t.l,0.975,na.rm = TRUE)*sd(mean.l)))
+print("Studentized t bootsrap")
+a.t #alpha
+b.t #beta
+m.t #mu
+l.t #lambda
+
+
+#bootstrap percentile (check), student (check), BCAa 95% CI
 library(boot)
 B <- 1000
 y.a <- chain[,1]
@@ -285,8 +354,15 @@ boot.ci(l.boot, type = c("perc", "stud","bca"))
 
 ```
 
-```{r Problem 2b}
-#Metropolis Hastings
+The estimates from the Metropolis algorithm are slightly off from the EM algorithm estimates. While there is a high rejection rate that would be becuase I had to add a conditional to stop NaN variables entering (I debugged the whole thing and unfortunately that was the only solution that worked) which of course contributes to the high rejection rate. With that being said, MCMC algorithms, such as the Metropolis Sampler, can have a difficult time converging so typically additional steps need to be taken (such as reparamertization), making it harder to implement compared to the EM algorithm.
+
+Moreover we do not see a large difference in the 95% Confidence intervals, though that can be because of the small amount of variance seen and the high rejection rate.
+
+In statistics, typically the BCa and student t-test for 95% confidence intervals outperform the percentile bootstrap method to find the 95% confidence interval. It is hard to tell based on these three methods which is better, especially because of the high rejection rate and small variance calculated in part d (wouldn't expect to see a wide range of values).
+
+## part b: The Metropolis-Hastings Algorithm
+```{r Problem 2b -> EXPONENTIAL DISTRIBUTION}
+#Metropolis-Hastings Algorithm
 set.seed(5)
 df <- c(379,299,222,145,109,95,73,59,45,30,24,12,4,2,0,1,1)
 alpha <- 0.23
@@ -341,8 +417,132 @@ options(warn = -1)
 c(mean(chain[,1]),mean(chain[,2]),mean(chain[,3]),mean(chain[,4]))
 print("Rejection Rate:")
 100*(reject/N)
+```
 
-#Part d: Bootstrap the variances
+## part c: Comparing Proposal Distributions
+
+```{r Problem 2c -> GAMMA DISTRIBUTION}
+#Metropolis-Hastings Algorithm
+set.seed(5)
+df <- c(379,299,222,145,109,95,73,59,45,30,24,12,4,2,0,1,1)
+alpha <- 0.23
+beta <- 0.25
+mu <- 3.5
+lambda <- 3.5
+N <- 1000
+chain <- matrix(nrow = N, ncol = 4)
+chain[1,] <- c(alpha,beta,mu,lambda)
+minn = -0.5
+maxx = 0.5
+reject = 0
+pi_i <- function(alpha,beta,mu,lambda,i){
+  if(i==0) return(alpha + beta*exp(-mu) + (1-alpha-beta)*exp(-lambda))
+  else return(beta*(mu^i)*exp(-mu) + (1-alpha-beta)*(lambda^i)*exp(-lambda))
+}
+loglike <- function(alpha,beta,mu,lambda){
+  sum.out <- 0
+  alpha = exp(alpha)/(1+exp(alpha))
+  beta = exp(beta)/(1+exp(beta))
+  mu = exp(mu)
+  lambda = exp(lambda)
+  for(i in 1:length(df)){
+    sum.out <- sum.out + df[i]*(log(pi_i(alpha,beta,mu,lambda,i-1)) - log(factorial(i-1)))
+  }
+  return(sum.out)
+}
+options(warn = -1)
+for(i in 2:N){
+  alpha.star <- rgamma(1,2)
+  while(alpha.star < 0 || alpha.star > 1){
+    alpha.star <- rgamma(1,2)
+  }
+  beta.star <- rgamma(1,2)
+  while(beta.star < 0 || beta.star > 1){
+    beta.star <- rgamma(1,2)
+  }
+  mu.star <- rgamma(1,2)
+  lambda.star <- rgamma(1,2)
+  ratio <- exp(loglike(alpha.star,beta.star,mu.star,lambda.star) - loglike(chain[i-1,1],chain[i-1,2],chain[i-1,3],chain[i-1,4]))
+  options(warn = -1)
+  if(is.nan(ratio)){ratio = 0}
+  if(runif(1) < ratio){
+    chain[i,] <- c(alpha.star,beta.star,mu.star,lambda.star)
+  }
+  else{
+    chain[i,] <- chain[i-1,]
+    reject <- reject + 1
+  }
+}
+options(warn = -1)
+cat("Estimates from an exponential distribution","\n",
+    c(mean(chain[,1]),mean(chain[,2]),mean(chain[,3]),mean(chain[,4])),"\n")
+print("Rejection Rate:")
+100*(reject/N)
+```
+
+```{r Problem 2c -> CHI SQUARED DISTRIBUTION}
+#Metropolis-Hastings Algorithm
+set.seed(5)
+df <- c(379,299,222,145,109,95,73,59,45,30,24,12,4,2,0,1,1)
+alpha <- 0.23
+beta <- 0.25
+mu <- 3.5
+lambda <- 3.5
+N <- 1000
+chain <- matrix(nrow = N, ncol = 4)
+chain[1,] <- c(alpha,beta,mu,lambda)
+minn = -0.5
+maxx = 0.5
+reject = 0
+pi_i <- function(alpha,beta,mu,lambda,i){
+  if(i==0) return(alpha + beta*exp(-mu) + (1-alpha-beta)*exp(-lambda))
+  else return(beta*(mu^i)*exp(-mu) + (1-alpha-beta)*(lambda^i)*exp(-lambda))
+}
+loglike <- function(alpha,beta,mu,lambda){
+  sum.out <- 0
+  alpha = exp(alpha)/(1+exp(alpha))
+  beta = exp(beta)/(1+exp(beta))
+  mu = exp(mu)
+  lambda = exp(lambda)
+  for(i in 1:length(df)){
+    sum.out <- sum.out + df[i]*(log(pi_i(alpha,beta,mu,lambda,i-1)) - log(factorial(i-1)))
+  }
+  return(sum.out)
+}
+options(warn = -1)
+for(i in 2:N){
+  alpha.star <- rchisq(1,2)
+  while(alpha.star < 0 || alpha.star > 1){
+    alpha.star <- rchisq(1,2)
+  }
+  beta.star <- rchisq(1,2)
+  while(beta.star < 0 || beta.star > 1){
+    beta.star <- rchisq(1,2)
+  }
+  mu.star <- rchisq(1,2)
+  lambda.star <- rchisq(1,2)
+  ratio <- exp(loglike(alpha.star,beta.star,mu.star,lambda.star) - loglike(chain[i-1,1],chain[i-1,2],chain[i-1,3],chain[i-1,4]))
+  options(warn = -1)
+  if(is.nan(ratio)){ratio = 0}
+  if(runif(1) < ratio){
+    chain[i,] <- c(alpha.star,beta.star,mu.star,lambda.star)
+  }
+  else{
+    chain[i,] <- chain[i-1,]
+    reject <- reject + 1
+  }
+}
+options(warn = -1)
+cat("Estimates from an exponential distribution","\n",
+    c(mean(chain[,1]),mean(chain[,2]),mean(chain[,3]),mean(chain[,4])),"\n")
+print("Rejection Rate:")
+100*(reject/N)
+```
+
+Changing the proposal distribution should (in theory) help with convergence and parameter estimation, because unlike the random walk where one chooses a symmetrical distribution (even if the target is no where near that) M-H algorithm chooses a non-symmetric proposal distribution.
+
+```{r 2d MH Variance}
+#Part d: Bootstrap the variances for MH
 B <- 1000
 y.a <- chain[,1]
 y.b <- chain[,1]
@@ -366,8 +566,11 @@ var.boot <- c((1/(B-1))*sum((mN.a - mean(mN.a))^2),(1/(B-1))*sum((mN.b - mean(mN
 
 cat("Variance Estimate from bootstrap",var.boot,"\n")
 
+```
+
+
+```{r 2e}
 #Part e: Bootstrap 95% CI
-library(boot)
 #bootstrap percentile, student, BCAa
 mean.fun <- function(y.a, i) 
 {    m <- mean(y.a[i])
@@ -388,29 +591,15 @@ l.boot <- boot(y.l, mean.fun, R = 1000)
 boot.ci(l.boot, type = c("perc", "stud","bca"))
 
 ```
-
- in many situations alternative methods outperform the percentile bootstrap (such as percentile-t, bias corrected, bias corrected & accelerated (BCa), wild bootstraps)
+ 
 
 \newpage
 # Problem 3
 ## part a:
 From the given data for the clinical trial, we can see from the box-and-whisker plot that the Hormone group with the censored time has the most patients out of the four groups. Not only that, but the means are more spread apart within the hormone group (difference of 13.68) compared to the control group (difference of 7.2). Based on the combined Normal QQ plot, the Control Group with Censored time most closely follows a normal distribution ("3" from list.id legend). The two from the hormone group of Recurrence and Censor times (0 and 1, respectively), do not closely align with a normal distribution.
-## part b: 
-Given the likelihood and prior, we can use those to calculate the conditional distributions of $\theta$ and $\tau$. To do this we will first need to calculate the joint probability density function:
-$$P(y|\theta,\tau) \propto L(\theta,\tau|y)f(\theta,\tau)$$
-$$\pi(\theta,\tau|y) \propto \pi(\theta,\tau,y) = L(\theta,\tau|y)f(\theta,\tau)$$
-$$P(\theta,\tau|y) = \theta^{\Sigma \delta_i^c + \Sigma\delta_i^H +2a}\tau^{\Sigma\delta_i^H + b}exp(-\theta(\Sigma x_i^C + c) - \tau\theta(\Sigma x_i^H + d))$$
-With this we can calculate the conditional distributions for the parameters:
-$$P(\tau | \theta,y) = \tau^{\Sigma\delta_i^H + b}exp(- \tau\theta(\Sigma x_i^H + d))$$
-$$ \propto Gamma(\tau | \Sigma\delta_i^H + b + 1,\Sigma x_i^C \Sigma x_i^H + c + d$$
-$$P(\theta|\tau,y) = \theta^{\Sigma \delta_i^c + \Sigma\delta_i^H + a}exp(-\theta(\Sigma x_i^C + c) - \tau\theta(\Sigma x_i^H + d))$$
-$$ \propto Gamma(\theta | \Sigma \delta_i^c + \Sigma\delta_i^H + a + 1,\Sigma x_i^C + \tau \Sigma x_i^H + c + d\tau$$
 
-
-```{r Problem 3}
+```{r Problem 3a}
 set.seed(12345)
-library(ggplot2)
-library(Rmisc)
 #initialize data sets
 hormone.rec <- c(2,4,6,9,9,9,13,14,18,23,31,32,33,34,43)
 lab.h.r <- rep(0,length(hormone.rec))
@@ -434,7 +623,18 @@ p <- qplot(sample = dat.df,data = cancer.dat, color = list.id, shape = list.id)
 p + labs(title = "Months in Trial \n Based on Treatment Group", y = "Months in Trial")
 
 ggplot(cancer.dat,aes(x = dat.df, fill = list.id, color = list.id))+ geom_histogram(position = "identity", fill = "transparent") + labs(title = "Histogram of Censored vs. Recurrence time in Test groups", x = "Time in Months to Second Recurrence")
+```
 
+## part b: 
+Given the likelihood and prior, we can use those to calculate the conditional distributions of $\theta$ and $\tau$. To do this we will first need to calculate the joint probability density function:
+$$P(y|\theta,\tau) \propto L(\theta,\tau|y)f(\theta,\tau)$$
+$$\pi(\theta,\tau|y) \propto \pi(\theta,\tau,y) = L(\theta,\tau|y)f(\theta,\tau)$$
+$$P(\theta,\tau|y) = \theta^{\Sigma \delta_i^c + \Sigma\delta_i^H +2a}\tau^{\Sigma\delta_i^H + b}exp(-\theta(\Sigma x_i^C + c) - \tau\theta(\Sigma x_i^H + d))$$
+With this we can calculate the conditional distributions for the parameters:
+$$P(\tau | \theta,y) = \tau^{\Sigma\delta_i^H + b}exp(- \tau\theta(\Sigma x_i^H + d)) \propto Gamma(\tau | \Sigma\delta_i^H + b + 1,\Sigma x_i^C \Sigma x_i^H + c + d$$
+$$P(\theta|\tau,y) = \theta^{\Sigma \delta_i^c + \Sigma\delta_i^H + a}exp(-\theta(\Sigma x_i^C + c) - \tau\theta(\Sigma x_i^H + d))\propto Gamma(\theta | \Sigma \delta_i^c + \Sigma\delta_i^H + a + 1,\Sigma x_i^C + \tau \Sigma x_i^H + c + d\tau$$
+
+```{r Gibbs Sampler}
 #part c: Gibbs Sampler
 #Initialize and prepare recurrence and censored data based on patient group
 delta.h <- c(rep(1,length(hormone.rec)),rep(0,length(hormone.cens)))
@@ -545,7 +745,7 @@ For the hyperparameters, we can see from the table of summary statistics, that c
 
 \newpage 
 # Problem 4
-```{r Problem 4}
+```{r Problem 4b}
 set.seed(475)
 
 #part b: mean recurrence time
@@ -561,7 +761,9 @@ hormone.estimate <- rexp(length(theta.est),rate = mean(tau.est)*mean(theta.est))
 control.estimate <- rexp(length(theta.est),rate = mean(theta.est))
 cat("Mean Recurrence Time for Hormone Group", mean(hormone.estimate),"\n")
 cat("Mean Recurrence Time for Control Group", mean(control.estimate), "\n")
+```
 
+```{r 2c}
 #part c:
 B = 1000 #Bootstrap Iteration
 alpha <- 0.05
@@ -575,7 +777,10 @@ j <- (alpha/2) * B
 k <- (1-(alpha/2)) * B
 cat("95% CI for Hormone Group:", c(means.hormone[j],means.hormone[k]),"\n")
 cat("95% CI for Control Group:", c(means.control[j],means.control[k]),"\n")
+```
+Because the 95% confidence interval for the hormone group falls into the 95% confidence interval for the control group, we can say that the drug has little to no effect on stopping the recurrence of cancer.
 
+```{r 2d}
 #part d: Permutation Tests
 # Use permutation tests to show that there is no difference between the mean recurrence times
 #Null hypothesis: the mean recurrence time between the two groups is equal
@@ -596,11 +801,13 @@ for(p in 1:P){
 obs.diff.mean <- theta.h - theta.c
 hist(res.diff.mean, breaks = 25, col = "gray", main = "Permutation Test for Difference of the Means")
 abline(v = obs.diff.mean, col = "red")
-
+p <- mean(c(obs.diff.mean, res.diff.mean) >= obs.diff.mean)
+p
 quantile(res.diff.mean,probs = c(0.025,0.975))
 obs.diff.mean
-
 ```
+
+Based on the placement of the observed test statistic (mean) on the histogram, and the ALS (p-value) we must reject the alternative hypothesis that the means of the recurrence times are different and accept the null hypothesis. This supports previous conclusions made about the clinical trial data (i.e. the drug is not effective against recurring episodes of cancer).
 
 \newpage 
 # Problem 5
